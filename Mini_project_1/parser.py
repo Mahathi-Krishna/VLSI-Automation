@@ -19,7 +19,7 @@ All_delay = ''                      #To hold all the dleay values from the NLDM 
 All_slews=''                        #To hold slew data from the NLDM file
 Cload_vals=''                       #To holde the load cap values from the nldm file
 Tau_in_vals = ''                    #To hold slew data from the NLDM file
-circuitfile = 'circuit_details.txt' #Output file for the bench parser
+circuitfile = 'ckt_details.txt' #Output file for the bench parser
 data = []                           # holds the file data
 circuit_input_lines = {}            # holds the input line and type details
 circuit_intermediate_outputs = {}   # holds the intermediate line details
@@ -256,8 +256,8 @@ def read_ckt():
 
     fn_io_parser(data)
     fn_gate_detail_parser(data)
-    fn_fanout_parser()
     fn_fanin_parser()
+    fn_fanout_parser()
 
 
 if args.read_nldm:
