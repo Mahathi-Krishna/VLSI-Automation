@@ -29,9 +29,11 @@ circuit_intermediate_outputs = {}   # holds the intermediate line details
 circuit_output_lines = {}           # holds the output line details
 gate_count_dict = {}                # holds the count for each gate type
 gate_obj_list = []                  # stores the node names
+gate_obj_dict = {}                  # stores the node names
 gate_id_list = []                   # Stores the gate node numbers
 gate_type_list = []                 # stores the type of each gate
 gate_input_list = []                # stores the inputs of each gate as list of list
+gate_cload_list = []                # stores the cload of each gate as list
 capacitance = []
 inputcap = 0
 
@@ -217,6 +219,7 @@ def fn_gate_detail_parser(lines):
                 else:
                     gate_count_dict[gate_type] = 1
                 
+                # gate_id_list.append(gate_out) #changed now
                 gate_id_list.append(gate_out)
                 gate_type_list.append(line_detail[2].split("(")[0])
                 gate_input_list.append([s.strip() for s in line_detail[2].split("(")[1].split(")")[0].split(",")])
@@ -226,6 +229,7 @@ def fn_gate_detail_parser(lines):
         gate_name = gate_type_list[i] + '-' + gate_id_list[i]
         gate = Node(gate_name)
         gate_obj_list.append(gate)
+        gate_obj_dict[gate_name] = gate
         gate.gate = gate_type_list[i]
         gate.outname = gate_id_list[i]
         gate.inputs = gate_input_list[i]
@@ -266,7 +270,8 @@ def fn_fanout_parser():
                     id = intermediate_key_list[index]
                     gate_type = circuit_intermediate_outputs[id]
                     str_data = str_data + ' ' + gate_type + '-' + id + ','
-                    tempList.append(id) # phase-2
+                    tempList.append(gate_type + '-' + id) # phase-2
+                    # print(gate_type + '-' + id, gate_obj_dict.get(gate_type + '-' + id).__dict__)
         
         if (gate_id in output_key_list):
            gate_type = circuit_output_lines[gate_id]
@@ -277,16 +282,16 @@ def fn_fanout_parser():
         gate_output_list.append(tempList) # phase-2
     
     # phase-2
+    for node in nodes:
+        if(node.Allgate_name == 'INV_X1'):
+            loadcap_inv = node.inputcap
+
     for index, gate in enumerate(gate_obj_list):
         gate.outputs = gate_output_list[index]
         if ('O' in gate.outputs):
-            gate.cload = 4 * 1.714471
+            gate.cload = 4 * loadcap_inv
 
     fn_w_circuit_file(0, circuitfile, 'a', str_data)
-
-# Function for cload:
-# def fn_cload():
-    # for index, gate in enumerate(gate_obj_list):
 
 # Function for reading the .bench file and populate the necessary circuit details:
 def read_ckt():
@@ -294,7 +299,7 @@ def read_ckt():
         data = file.readlines()
     fn_io_parser(data)
     fn_gate_detail_parser(data)
-    fn_fanout_parser()
+    # fn_fanout_parser()
     fn_fanin_parser()
 
 
@@ -309,46 +314,53 @@ def read_ckt():
 
 input_filepath = './c17.bench'
 read_ckt()
+input_filepath = './sample_NLDM.lib'
+nldm()
+delay()
+slew()
+fn_fanout_parser()
 
-print("Enter:\n1. Read Ckt\n2. Read NLDM")
-opt = int(input())
+# print("Enter:\n1. Read Ckt\n2. Read NLDM")
+# opt = int(input())
 
-if opt==2:
-    input_filepath = './sample_NLDM.lib'
-    print("Enter:\n1. Delay\n2. Slew")
-    opt2 = int(input())
-    nldm()
-    if opt2==1:
-        delay()
-    elif opt2==2:
-        slew()
+# if opt==2:
+#     input_filepath = './sample_NLDM.lib'
+#     print("Enter:\n1. Delay\n2. Slew")
+#     opt2 = int(input())
+#     nldm()
+#     if opt2==1:
+#         delay()
+#     elif opt2==2:
+#         slew()
 # elif opt==1:
 #     input_filepath = './c17.bench'
 #     read_ckt()
 
 # phase-2 start
 # For topological traversal
-def topsort(v):
-    for index, gate in enumerate(gate_obj_list):
-        if (v in gate.inputs) and (gate.visited == 0) :
-            gate.visited = 1
-            Q.append(gate.outname)
-            tempQ.append(gate.outname)
+# def topsort(v):
+#     for index, gate in enumerate(gate_obj_list):
+#         if (v in gate.inputs) and (gate.visited == 0) :
+#             gate.visited = 1
+#             Q.append(gate.outname)
+#             tempQ.append(gate.outname)
 
-for i in circuit_input_lines:
-    Q.append(i)
-    tempQ.append(i)
+# for i in circuit_input_lines:
+#     Q.append(i)
+#     tempQ.append(i)
 
-while Q:
-    v = Q.popleft()
-    topsort(v)
+# while Q:
+#     v = Q.popleft()
+#     topsort(v)
 
-print(tempQ)
+# print(tempQ)
 
 for i in gate_obj_list:
-    print(i.name, i.outputs, i.cin, i.cload, i.in_arr_time)
-
+    print(i.name, i.inputs, i.cin, i.outputs, i.cload)
 # phase-2 end
 
-# for index, i in enumerate(gate_type_list):
-    # print(i, gate_id_list[index])
+# print(gate_obj_dict.get('NAND-10').__dict__)
+
+print(circuit_input_lines)
+print(circuit_intermediate_outputs)
+print(circuit_output_lines)
