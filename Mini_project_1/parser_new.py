@@ -38,7 +38,7 @@ inputcap = 0
 # phase-2
 gate_output_list = []               # stores the inputs of each gate as list of list
 Q = deque()                         # for Top BFS
-tempQ = []
+tempQ = []                          # phase-2 remove
 
 # Class for gates:
 class Node:
@@ -46,6 +46,7 @@ class Node:
         self.gate = ""          # gate type
         self.name = name        # gate name
         self.outname = ""       # output node name
+        self.cin = 0.0          # load capacitance
         self.cload = 0.0        # load capacitance
         self.inputs = []        # fanin details
         self.outputs = []       # fanout details
@@ -132,9 +133,10 @@ def nldm():
     
     # phase-2
     for index, gate in enumerate(gate_obj_list):    
+        # For storing cin
         for items in nodes:
             if gate.name.split('-')[0] in items.Allgate_name:
-                gate.cload = items.inputcap
+                gate.cin = items.inputcap * len(gate.inputs)
 
 # Function to call for delay
 def delay():
@@ -241,6 +243,8 @@ def fn_fanin_parser():
         for i in gate.inputs:
             if (i in circuit_input_lines.keys()):
                 str_data = str_data + ' ' + circuit_input_lines[i] + '-' + i + ','
+                gate.tau_in.append(0.002) # phase-2
+                gate.in_arr_time.append(0) # phase-2
             elif (i in circuit_intermediate_outputs.keys()):
                 str_data = str_data + ' ' + circuit_intermediate_outputs[i] + '-' + i + ','
         str_data = str_data.strip(',') + '\n'
@@ -275,14 +279,19 @@ def fn_fanout_parser():
     # phase-2
     for index, gate in enumerate(gate_obj_list):
         gate.outputs = gate_output_list[index]
+        if ('O' in gate.outputs):
+            gate.cload = 4 * 1.714471
 
     fn_w_circuit_file(0, circuitfile, 'a', str_data)
+
+# Function for cload:
+# def fn_cload():
+    # for index, gate in enumerate(gate_obj_list):
 
 # Function for reading the .bench file and populate the necessary circuit details:
 def read_ckt():
     with open(input_filepath, "r") as file:
         data = file.readlines()
-
     fn_io_parser(data)
     fn_gate_detail_parser(data)
     fn_fanout_parser()
@@ -313,10 +322,9 @@ if opt==2:
         delay()
     elif opt2==2:
         slew()
-
-elif opt==1:
-    input_filepath = './c17.bench'
-    read_ckt()
+# elif opt==1:
+#     input_filepath = './c17.bench'
+#     read_ckt()
 
 # phase-2 start
 # For topological traversal
@@ -324,7 +332,6 @@ def topsort(v):
     for index, gate in enumerate(gate_obj_list):
         if (v in gate.inputs) and (gate.visited == 0) :
             gate.visited = 1
-            # gateType = gate_type_list[gate_id_list.index(gate.outname)]
             Q.append(gate.outname)
             tempQ.append(gate.outname)
 
@@ -339,10 +346,9 @@ while Q:
 print(tempQ)
 
 for i in gate_obj_list:
-    print(i.name, i.outputs, i.cload)
+    print(i.name, i.outputs, i.cin, i.cload, i.in_arr_time)
+
 # phase-2 end
 
 # for index, i in enumerate(gate_type_list):
     # print(i, gate_id_list[index])
-
-# print(gate_type_list[gate_id_list.index('22')])
