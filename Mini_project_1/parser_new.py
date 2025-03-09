@@ -2,6 +2,9 @@ import argparse     #For Command line interfacing
 import re           #To parse throug the NLDM or the Circuit file 
 import numpy as np  #To handle arrays
 
+# phase-2
+from collections import deque
+
 # parser = argparse.ArgumentParser() 
 # parser.add_argument("-d", "--delay", help="print delay",action="store_true")                #To run for delay using the Command Line Interface
 # parser.add_argument("-s", "--slew", help="print slew",action="store_true")                  #To parse and populate the datastructure for the NLDM file and find delay
@@ -29,6 +32,13 @@ gate_obj_list = []                  # stores the node names
 gate_id_list = []                   # Stores the gate node numbers
 gate_type_list = []                 # stores the type of each gate
 gate_input_list = []                # stores the inputs of each gate as list of list
+capacitance = []
+inputcap = 0
+
+# phase-2
+gate_output_list = []               # stores the inputs of each gate as list of list
+Q = deque()                         # for Top BFS
+tempQ = []
 
 # Class for gates:
 class Node:
@@ -39,6 +49,7 @@ class Node:
         self.cload = 0.0        # load capacitance
         self.inputs = []        # fanin details
         self.outputs = []       # fanout details
+        self.visited = 0        # phase-2
         self.tau_in = []
         self.tau_out = 0.0
         self.in_arr_time = []
@@ -47,13 +58,13 @@ class Node:
 
 # Class for NLDM:
 class LUT:
-    def __init__(self,Allgate_name,All_delay,All_slews,Cload_vals,Tau_in_vals):
+    def __init__(self,Allgate_name,All_delay,All_slews,Cload_vals,Tau_in_vals,inputcap):
         self.Allgate_name = Allgate_name
         self.All_delays = All_delay
         self.All_slews = All_slews
         self.Cload_vals = Cload_vals
         self.Tau_in_vals = Tau_in_vals
-
+        self.inputcap = inputcap
     def assign_arrays(self,NLDM_file):  #Function to pass the NLDM file and retrive the data , returns the required data from the NLDM file
         nodes = []
         lines1 = []
@@ -66,6 +77,7 @@ class LUT:
         flag = 0
         id = 0
         value_str=""
+        cap = []
         
         with open(NLDM_file,"r") as file:
             for line in file:
@@ -79,6 +91,8 @@ class LUT:
                 gates = inputs[1]
                 gates = re.split(r"[(.*?)]", str(inputs))[1]
                 gates_nldm.append(gates)
+            if(('capacitance		:' in lines1[i])):
+                cap.append(float(lines1[i].split(':')[1].strip(';')))
             if("index_1" in lines1[i]):
                 input_slew.append(lines1[i].split('"')[1].strip())
             if("index_2" in lines1[i]):
@@ -102,19 +116,25 @@ class LUT:
             values1 = [(value.strip().replace('"', '').replace("\\", "").replace(");","")) for value in values1.split(",")]
             values1 = np.array(values1).reshape(7,7)
             all_values.append(values1)
-        return(gates_nldm,input_slew,load_cap,all_values)
+        return(gates_nldm,input_slew,load_cap,all_values,cap)
 
 # Funciton called when the command line calls to parse for nldm file
 def nldm():
-    lut_instance = LUT(Allgate_name,All_delay,All_slews,Cload_vals,Tau_in_vals)
-    gates_nldm,input_slew,load_cap,all_values = lut_instance.assign_arrays(input_filepath)
+    lut_instance = LUT(Allgate_name,All_delay,All_slews,Cload_vals,Tau_in_vals,inputcap)
+    gates_nldm,input_slew,load_cap,all_values,capacitance = lut_instance.assign_arrays(input_filepath) # phase-2
     for i in range(0,len(gates_nldm)):
         if(i==0):
-            node = LUT(gates_nldm[i],all_values[i],all_values[i+1],load_cap[i+2],input_slew[i+2])
+            node = LUT(gates_nldm[i],all_values[i],all_values[i+1],load_cap[i+2],input_slew[i+2],capacitance[i])
             nodes.append(node)
         else:
-            node = LUT(gates_nldm[i],all_values[i+i],all_values[i+i+1],load_cap[i+2],input_slew[i+2])
+            node = LUT(gates_nldm[i],all_values[i+i],all_values[i+i+1],load_cap[i+2],input_slew[i+2],capacitance[i])
             nodes.append(node)
+    
+    # phase-2
+    for index, gate in enumerate(gate_obj_list):    
+        for items in nodes:
+            if gate.name.split('-')[0] in items.Allgate_name:
+                gate.cload = items.inputcap
 
 # Function to call for delay
 def delay():
@@ -234,6 +254,7 @@ def fn_fanout_parser():
     str_data = "\nFanout...\n"
     
     for gate_id in gate_id_list:
+        tempList = [] # phase-2
         str_data = str_data + circuit_intermediate_outputs[gate_id] + '-' + gate_id + ':'
         if gate_id not in output_key_list:
             for index, input in enumerate(gate_input_list):
@@ -241,12 +262,20 @@ def fn_fanout_parser():
                     id = intermediate_key_list[index]
                     gate_type = circuit_intermediate_outputs[id]
                     str_data = str_data + ' ' + gate_type + '-' + id + ','
+                    tempList.append(id) # phase-2
         
         if (gate_id in output_key_list):
            gate_type = circuit_output_lines[gate_id]
            str_data = str_data + ' ' + gate_type + '-' + gate_id + ','
+           tempList.append('O') # phase-2
+
         str_data = str_data.strip(',') + '\n'
+        gate_output_list.append(tempList) # phase-2
     
+    # phase-2
+    for index, gate in enumerate(gate_obj_list):
+        gate.outputs = gate_output_list[index]
+
     fn_w_circuit_file(0, circuitfile, 'a', str_data)
 
 # Function for reading the .bench file and populate the necessary circuit details:
@@ -269,6 +298,9 @@ def read_ckt():
 # if args.read_ckt:
 #     read_ckt()
 
+input_filepath = './c17.bench'
+read_ckt()
+
 print("Enter:\n1. Read Ckt\n2. Read NLDM")
 opt = int(input())
 
@@ -285,3 +317,32 @@ if opt==2:
 elif opt==1:
     input_filepath = './c17.bench'
     read_ckt()
+
+# phase-2 start
+# For topological traversal
+def topsort(v):
+    for index, gate in enumerate(gate_obj_list):
+        if (v in gate.inputs) and (gate.visited == 0) :
+            gate.visited = 1
+            # gateType = gate_type_list[gate_id_list.index(gate.outname)]
+            Q.append(gate.outname)
+            tempQ.append(gate.outname)
+
+for i in circuit_input_lines:
+    Q.append(i)
+    tempQ.append(i)
+
+while Q:
+    v = Q.popleft()
+    topsort(v)
+
+print(tempQ)
+
+for i in gate_obj_list:
+    print(i.name, i.outputs, i.cload)
+# phase-2 end
+
+# for index, i in enumerate(gate_type_list):
+    # print(i, gate_id_list[index])
+
+# print(gate_type_list[gate_id_list.index('22')])
