@@ -47,7 +47,7 @@ class Node:
     def __init__(self,name):
         self.gate = ""          # gate type
         self.name = name        # gate name
-        self.outname = ""       # output node name
+        self.outpin = ""       # output node name
         self.cin = 0.0          # load capacitance
         self.cload = 0.0        # load capacitance
         self.inputs = []        # fanin details
@@ -136,9 +136,10 @@ def nldm():
     # phase-2
     for index, gate in enumerate(gate_obj_list):    
         # For storing cin
+        gate_name = 'INV' if gate.name.split('-')[0] == 'NOT' else 'BUF' if gate.name.split('-')[0] == 'BUFF' else gate.name.split('-')[0]
         for items in nodes:
-            if gate.name.split('-')[0] in items.Allgate_name:
-                gate.cin = items.inputcap * len(gate.inputs)
+            if gate_name == re.sub(r"\d", "", items.Allgate_name.split('_')[0]):
+                gate.cin = items.inputcap
 
 # Function to call for delay
 def delay():
@@ -183,14 +184,14 @@ def fn_io_parser(lines):
             line_detail = [s.strip() for s in re.split(r"(\()", line)]
 
             if (line_detail[0] == "INPUT"):
-                circuit_input_lines[line_detail[2].split(")")[0]] = line_detail[0].strip()
+                circuit_input_lines[line_detail[2].split(")")[0]] = line_detail[0].strip() + '-' + line_detail[2].split(")")[0]
             
             if (line_detail[0] == "OUTPUT"):
-                circuit_output_lines[line_detail[2].split(")")[0]] = line_detail[0].strip()
+                circuit_output_lines[line_detail[2].split(")")[0]] = line_detail[0].strip() + '-' + line_detail[2].split(")")[0]
             
             if (line_detail[0] not in "INPUT|OUTPUT"):
                 line_detail = line_detail[0].split("=")
-                circuit_intermediate_outputs[line_detail[0].strip()] = line_detail[1].strip()
+                circuit_intermediate_outputs[line_detail[0].strip()] = line_detail[1].strip() + '-' + line_detail[0].strip()
 
             str_data = (f"{len(circuit_input_lines)} primary inputs\n"
                         f"{len(circuit_output_lines)} primary outputs\n")
@@ -204,6 +205,7 @@ def fn_gate_detail_parser(lines):
     str_data = ""
 
     for line in lines:
+        tempList = []
         if line.strip() and not line.startswith('#'):
             line_detail = [s.strip() for s in re.split(r"(=)", line)]
 
@@ -219,10 +221,17 @@ def fn_gate_detail_parser(lines):
                 else:
                     gate_count_dict[gate_type] = 1
                 
-                # gate_id_list.append(gate_out) #changed now
                 gate_id_list.append(gate_out)
                 gate_type_list.append(line_detail[2].split("(")[0])
-                gate_input_list.append([s.strip() for s in line_detail[2].split("(")[1].split(")")[0].split(",")])
+                
+                for i in [s.strip() for s in line_detail[2].split("(")[1].split(")")[0].split(",")]:
+                    if i in circuit_input_lines.keys():
+                        tempList.append(circuit_input_lines.get(i))
+                    elif i in circuit_intermediate_outputs.keys():
+                        tempList.append(circuit_intermediate_outputs.get(i))
+                    elif i in circuit_output_lines.keys():
+                        tempList.append(circuit_output_lines.get(i))
+                gate_input_list.append(tempList)
 
     # Create nodes
     for i in range(len(gate_id_list)):
@@ -231,7 +240,7 @@ def fn_gate_detail_parser(lines):
         gate_obj_list.append(gate)
         gate_obj_dict[gate_name] = gate
         gate.gate = gate_type_list[i]
-        gate.outname = gate_id_list[i]
+        gate.outpin = gate_id_list[i]
         gate.inputs = gate_input_list[i]
 
     for key in gate_count_dict.keys():
@@ -242,15 +251,15 @@ def fn_gate_detail_parser(lines):
 # Function for computing fan-in details of each gate/node:
 def fn_fanin_parser():
     str_data = "\nFanin...\n"
-    for index, gate in enumerate(gate_obj_list):
-        str_data = str_data + gate.name + ':'
-        for i in gate.inputs:
-            if (i in circuit_input_lines.keys()):
-                str_data = str_data + ' ' + circuit_input_lines[i] + '-' + i + ','
-                gate.tau_in.append(0.002) # phase-2
-                gate.in_arr_time.append(0) # phase-2
-            elif (i in circuit_intermediate_outputs.keys()):
-                str_data = str_data + ' ' + circuit_intermediate_outputs[i] + '-' + i + ','
+    for index, gate in enumerate(gate_obj_dict):
+        str_data = str_data + gate + ':'
+        for i in gate_obj_dict.get(gate).inputs:
+            if (i.split('-')[1] in circuit_input_lines.keys()):
+                str_data = str_data + ' ' + circuit_input_lines.get(i.split('-')[1]) + ','
+                gate_obj_dict.get(gate).tau_in.append(0.002) # phase-2
+                gate_obj_dict.get(gate).in_arr_time.append(0) # phase-2
+            elif (i.split('-')[1] in circuit_intermediate_outputs.keys()):
+                str_data = str_data + ' ' + circuit_intermediate_outputs.get(i.split('-')[1]) + ','
         str_data = str_data.strip(',') + '\n'
         
     fn_w_circuit_file(0, circuitfile, 'a', str_data)
@@ -258,39 +267,42 @@ def fn_fanin_parser():
 # Function for computing fan-out details for each gate/node:
 def fn_fanout_parser():
     intermediate_key_list = list(circuit_intermediate_outputs.keys())
-    output_key_list = list(circuit_output_lines.keys())
     str_data = "\nFanout...\n"
-    
-    for gate_id in gate_id_list:
-        tempList = [] # phase-2
-        str_data = str_data + circuit_intermediate_outputs[gate_id] + '-' + gate_id + ':'
-        if gate_id not in output_key_list:
-            for index, input in enumerate(gate_input_list):
-                if gate_id in input:
-                    id = intermediate_key_list[index]
-                    gate_type = circuit_intermediate_outputs[id]
-                    str_data = str_data + ' ' + gate_type + '-' + id + ','
-                    tempList.append(gate_type + '-' + id) # phase-2
-                    # print(gate_type + '-' + id, gate_obj_dict.get(gate_type + '-' + id).__dict__)
-        
-        if (gate_id in output_key_list):
-           gate_type = circuit_output_lines[gate_id]
-           str_data = str_data + ' ' + gate_type + '-' + gate_id + ','
-           tempList.append('O') # phase-2
 
-        str_data = str_data.strip(',') + '\n'
-        gate_output_list.append(tempList) # phase-2
-    
     # phase-2
     for node in nodes:
         if(node.Allgate_name == 'INV_X1'):
             loadcap_inv = node.inputcap
+    
+    for gate_id in gate_id_list:
+        tempList = [] # phase-2
+        cload = 0.0 # phase-2
+        gatename = circuit_intermediate_outputs[gate_id]
+        str_data = str_data + gatename + ':'
+        if gate_id not in circuit_output_lines.keys():
+            for index, input in enumerate(gate_input_list):
+                input = [s.split('-')[1] for s in input]
+                if gate_id in input:
+                    id = intermediate_key_list[index]
+                    gate_type = circuit_intermediate_outputs[id]
+                    str_data = str_data + ' ' + gate_type + ','
+                    tempList.append(gate_type) # phase-2
+                    cload = cload + gate_obj_dict.get(gate_type).cin
+            gate_obj_dict.get(gatename).cload = cload
+        
+        if gate_id in circuit_output_lines.keys():
+           gate_type = circuit_output_lines[gate_id]
+           str_data = str_data + ' ' + gate_type + ','
+           tempList.append('O') # phase-2
+           gate_obj_dict.get(gatename).cload = 4 * loadcap_inv
 
-    for index, gate in enumerate(gate_obj_list):
-        gate.outputs = gate_output_list[index]
-        if ('O' in gate.outputs):
-            gate.cload = 4 * loadcap_inv
-
+        str_data = str_data.strip(',') + '\n'
+        gate_obj_dict.get(gatename).outputs = tempList # phase-2
+    
+    str_data = str_data + '\n\n'
+    for i in gate_obj_list:
+        mystr = i.__dict__
+        str_data = str_data + str(mystr) + '\n'
     fn_w_circuit_file(0, circuitfile, 'a', str_data)
 
 # Function for reading the .bench file and populate the necessary circuit details:
@@ -355,12 +367,7 @@ fn_fanout_parser()
 
 # print(tempQ)
 
-for i in gate_obj_list:
-    print(i.name, i.inputs, i.cin, i.outputs, i.cload)
+# for i in gate_obj_list:
+#     print(i.name, i.inputs, i.cin, i.outputs, i.cload)
+#    print(i.__dict__)
 # phase-2 end
-
-# print(gate_obj_dict.get('NAND-10').__dict__)
-
-print(circuit_input_lines)
-print(circuit_intermediate_outputs)
-print(circuit_output_lines)
