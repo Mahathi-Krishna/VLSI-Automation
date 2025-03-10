@@ -7,7 +7,6 @@ delay()
 slew()
 read_ckt()
 
-
 # phase-2 start
 # For topological traversal
 # def topsort(v):

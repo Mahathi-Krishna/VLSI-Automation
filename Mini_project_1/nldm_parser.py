@@ -2,7 +2,7 @@ import re           #To parse throug the NLDM or the Circuit file
 import numpy as np  #To handle arrays
 
 # Parameters
-nodes = []                          #To hold all the nodes of the LUT class
+nodes = {}                          #To hold all the nodes of the LUT class
 Allgate_name = ''                   #To get all the gate names from the NLDM file
 All_delay = ''                      #To hold all the dleay values from the NLDM file
 All_slews=''                        #To hold slew data from the NLDM file
@@ -25,7 +25,7 @@ class LUT:
         self.Tau_in_vals = Tau_in_vals
         self.inputcap = inputcap
     def assign_arrays(self,NLDM_file):  #Function to pass the NLDM file and retrive the data , returns the required data from the NLDM file
-        nodes = []
+        nodes = {}
         lines1 = []
         gate_index = []
         gates_nldm = []
@@ -84,15 +84,15 @@ def nldm():
     for i in range(0,len(gates_nldm)):
         if(i==0):
             node = LUT(gates_nldm[i],all_values[i],all_values[i+1],load_cap[i+2],input_slew[i+2],capacitance[i])
-            nodes.append(node)
+            nodes[gates_nldm[i]] = node
         else:
             node = LUT(gates_nldm[i],all_values[i+i],all_values[i+i+1],load_cap[i+2],input_slew[i+2],capacitance[i])
-            nodes.append(node)
+            nodes[gates_nldm[i]] = node
 
 # Function to call for delay
 def delay():
     f = open("delay_LUT.txt","w")
-    for node in nodes:
+    for node in nodes.values():
         f.write("cell: "+ node.Allgate_name+"\n")
         f.write("input slews: "+ node.Tau_in_vals+"\n")
         f.write("load_cap: "+ node.Cload_vals+"\n\n")
@@ -104,7 +104,7 @@ def delay():
 # Function to call for slew
 def slew():
     f = open("slew_LUT.txt","w")
-    for node in nodes:
+    for node in nodes.values():
         f.write("cell: "+ node.Allgate_name+"\n")
         f.write("input slews: "+ node.Tau_in_vals+"\n")
         f.write("load_cap: "+ node.Cload_vals+"\n\n")
@@ -120,7 +120,7 @@ def get_delay(gate_name,Cload,Tau):
     idx0 = idx1 = idx2 = idx3 = t1 = t2 = c1 = c2 = 0
     v = 0.0
     gate_name = 'INV' if gate_name.split('-')[0] == 'NOT' else 'BUF' if gate_name.split('-')[0] == 'BUFF' else gate_name.split('-')[0]
-    for nod in nodes:
+    for nod in nodes.values():
         if re.sub(r"\d", "", nod.Allgate_name.split('_')[0]) == gate_name:
             Cload_list = [float(num) for num in nod.Cload_vals.split(",") if num.strip()]
             Tauin_list = [float(num) for num in nod.Tau_in_vals.split(",") if num.strip()]

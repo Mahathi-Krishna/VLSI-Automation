@@ -2,6 +2,16 @@
 2 primary outputs
 6 NAND gates
 
+Fanin...
+OUTPUT-22:
+OUTPUT-23:
+NAND-10: INPUT-1, INPUT-3
+NAND-11: INPUT-3, INPUT-6
+NAND-16: INPUT-2, NAND-11
+NAND-19: NAND-11, INPUT-7
+NAND-22: NAND-10, NAND-16
+NAND-23: NAND-16, NAND-19
+
 Fanout...
 NAND-10: NAND-22
 NAND-11: NAND-16, NAND-19
@@ -10,10 +20,17 @@ NAND-19: NAND-23
 NAND-22: OUTPUT-22
 NAND-23: OUTPUT-23
 
-Fanin...
-NAND-10: INPUT-1, INPUT-3
-NAND-11: INPUT-3, INPUT-6
-NAND-16: INPUT-2, NAND-11
-NAND-19: NAND-11, INPUT-7
-NAND-22: NAND-10, NAND-16
-NAND-23: NAND-16, NAND-19
+
+{'gate': 'INPUT', 'name': 'INPUT-1', 'outpin': '1', 'cin': 0.0, 'cload': 0.0, 'inputs': [], 'outputs': [], 'visited': 0, 'tau_in': [0.002], 'tau_out': 0.0, 'in_arr_time': [0], 'out_arr_time': [], 'max_out_arr_time': 0.0}
+{'gate': 'INPUT', 'name': 'INPUT-2', 'outpin': '2', 'cin': 0.0, 'cload': 0.0, 'inputs': [], 'outputs': [], 'visited': 0, 'tau_in': [0.002], 'tau_out': 0.0, 'in_arr_time': [0], 'out_arr_time': [], 'max_out_arr_time': 0.0}
+{'gate': 'INPUT', 'name': 'INPUT-3', 'outpin': '3', 'cin': 0.0, 'cload': 0.0, 'inputs': [], 'outputs': [], 'visited': 0, 'tau_in': [0.002], 'tau_out': 0.0, 'in_arr_time': [0], 'out_arr_time': [], 'max_out_arr_time': 0.0}
+{'gate': 'INPUT', 'name': 'INPUT-6', 'outpin': '6', 'cin': 0.0, 'cload': 0.0, 'inputs': [], 'outputs': [], 'visited': 0, 'tau_in': [0.002], 'tau_out': 0.0, 'in_arr_time': [0], 'out_arr_time': [], 'max_out_arr_time': 0.0}
+{'gate': 'INPUT', 'name': 'INPUT-7', 'outpin': '7', 'cin': 0.0, 'cload': 0.0, 'inputs': [], 'outputs': [], 'visited': 0, 'tau_in': [0.002], 'tau_out': 0.0, 'in_arr_time': [0], 'out_arr_time': [], 'max_out_arr_time': 0.0}
+{'gate': 'OUTPUT', 'name': 'OUTPUT-22', 'outpin': '22', 'cin': 0.0, 'cload': 0.0, 'inputs': [], 'outputs': [], 'visited': 0, 'tau_in': [], 'tau_out': 0.0, 'in_arr_time': [], 'out_arr_time': [], 'max_out_arr_time': 0.0}
+{'gate': 'OUTPUT', 'name': 'OUTPUT-23', 'outpin': '23', 'cin': 0.0, 'cload': 0.0, 'inputs': [], 'outputs': [], 'visited': 0, 'tau_in': [], 'tau_out': 0.0, 'in_arr_time': [], 'out_arr_time': [], 'max_out_arr_time': 0.0}
+{'gate': 'NAND', 'name': 'NAND-10', 'outpin': '10', 'cin': 1.599032, 'cload': 1.599032, 'inputs': ['INPUT-1', 'INPUT-3'], 'outputs': ['NAND-22'], 'visited': 0, 'tau_in': [0.002, 0.002], 'tau_out': 0.0, 'in_arr_time': [0, 0], 'out_arr_time': [], 'max_out_arr_time': 0.0}
+{'gate': 'NAND', 'name': 'NAND-11', 'outpin': '11', 'cin': 1.599032, 'cload': 3.198064, 'inputs': ['INPUT-3', 'INPUT-6'], 'outputs': ['NAND-16', 'NAND-19'], 'visited': 0, 'tau_in': [0.002, 0.002], 'tau_out': 0.0, 'in_arr_time': [0, 0], 'out_arr_time': [], 'max_out_arr_time': 0.0}
+{'gate': 'NAND', 'name': 'NAND-16', 'outpin': '16', 'cin': 1.599032, 'cload': 3.198064, 'inputs': ['INPUT-2', 'NAND-11'], 'outputs': ['NAND-22', 'NAND-23'], 'visited': 0, 'tau_in': [0.002], 'tau_out': 0.0, 'in_arr_time': [0], 'out_arr_time': [], 'max_out_arr_time': 0.0}
+{'gate': 'NAND', 'name': 'NAND-19', 'outpin': '19', 'cin': 1.599032, 'cload': 1.599032, 'inputs': ['NAND-11', 'INPUT-7'], 'outputs': ['NAND-23'], 'visited': 0, 'tau_in': [0.002], 'tau_out': 0.0, 'in_arr_time': [0], 'out_arr_time': [], 'max_out_arr_time': 0.0}
+{'gate': 'NAND', 'name': 'NAND-22', 'outpin': '22', 'cin': 1.599032, 'cload': 6.80092, 'inputs': ['NAND-10', 'NAND-16'], 'outputs': ['OUTPUT-22'], 'visited': 0, 'tau_in': [], 'tau_out': 0.0, 'in_arr_time': [], 'out_arr_time': [], 'max_out_arr_time': 0.0}
+{'gate': 'NAND', 'name': 'NAND-23', 'outpin': '23', 'cin': 1.599032, 'cload': 6.80092, 'inputs': ['NAND-16', 'NAND-19'], 'outputs': ['OUTPUT-23'], 'visited': 0, 'tau_in': [], 'tau_out': 0.0, 'in_arr_time': [], 'out_arr_time': [], 'max_out_arr_time': 0.0}
