@@ -149,7 +149,7 @@ def fn_gate_detail_parser(lines):
 def fn_fanin_parser():
     str_data = "\nFanin...\n"
     for index, gate in enumerate(gate_obj_dict):
-        if (gate.split('-')[0] != 'INPUT'):
+        if (gate.split('-')[0] not in ['INPUT', 'OUTPUT']):
             str_data = str_data + gate + ':'
             for i in gate_obj_dict.get(gate).inputs:
                 if (i.split('-')[1] in circuit_input_lines.keys()):

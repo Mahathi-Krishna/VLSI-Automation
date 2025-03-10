@@ -1,7 +1,6 @@
 from circuit_parser import *
 from nldm_parser import *
 
-
 nldm()
 delay()
 slew()
