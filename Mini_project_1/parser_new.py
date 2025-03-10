@@ -361,11 +361,6 @@ def interpolate(Cload,Tau,Cload_list,Tauin_list):
             break
     return(idx0,idx1,idx2,idx3,t1,t2,c1,c2)
 
-# Function to calculate delay and update tau_out values of each gate:
-def fn_update_tauout():
-    for gate in gate_obj_dict:
-        get_delay(gate_obj_dict.get(gate).name, gate_obj_dict.get(gate).cload, gate_obj_dict.get(gate).tau_in)
-
 # phase-2 end
 
 # Function for reading the .bench file and populate the necessary circuit details:
@@ -393,7 +388,6 @@ nldm()
 delay()
 slew()
 fn_fanout_parser()
-fn_update_tauout()
 
 # print("Enter:\n1. Read Ckt\n2. Read NLDM")
 # opt = int(input())
