@@ -184,8 +184,8 @@ def fn_fanout_parser():
         gate_obj_dict.get(gatename).outputs = tempList # phase-2
     
     str_data = str_data + '\n\n'
-    for i in gate_obj_list:
-        mystr = i.__dict__
+    for val in gate_obj_dict.values():
+        mystr = val.__dict__
         str_data = str_data + str(mystr) + '\n'
     fn_w_circuit_file(0, circuitfile, 'a', str_data)
 
