@@ -305,6 +305,69 @@ def fn_fanout_parser():
         str_data = str_data + str(mystr) + '\n'
     fn_w_circuit_file(0, circuitfile, 'a', str_data)
 
+# phase-2 start:
+def get_delay(gate_name,Cload,Tau):
+    tauidx = 0
+    loadidx = 0
+    idx0 = idx1 = idx2 = idx3 = t1 = t2 = c1 = c2 = 0
+    v = 0.0
+    gate_name = 'INV' if gate_name.split('-')[0] == 'NOT' else 'BUF' if gate_name.split('-')[0] == 'BUFF' else gate_name.split('-')[0]
+    for nod in nodes:
+        if re.sub(r"\d", "", nod.Allgate_name.split('_')[0]) == gate_name:
+            Cload_list = [float(num) for num in nod.Cload_vals.split(",") if num.strip()]
+            Tauin_list = [float(num) for num in nod.Tau_in_vals.split(",") if num.strip()]
+            #print(Cload_list,Tauin_list)
+            c = Cload
+            t = Tau
+            for index,val in enumerate(Cload_list):
+                if val == Cload:
+                    loadidx = index
+            for index,val in enumerate(Tauin_list):
+                if val == Tau:
+                    tauidx = index
+            
+            if (loadidx == 0) and (tauidx == 0):
+                idx0,idx1,idx2,idx3,t1,t2,c1,c2= interpolate(Cload,Tau,Cload_list,Tauin_list)
+                print(c1,c2,t1,t2)
+                print(c,t)
+                v11 = float(nod.All_delays[idx2][idx0])
+                v12 = float(nod.All_delays[idx2][idx1])
+                v21 = float(nod.All_delays[idx3][idx0])
+                v22 = float(nod.All_delays[idx3][idx1])
+                print(v11,v12,v21,v22)
+                v = v11*(c2-c)*(t2-t)+v12*(c-c1)*(t2-t)+v21*(c2-c)*(t-t1)+v22*(c-c1)*(t-t1)/(c2-c1)*(t2-t1) 
+            else:
+                v = (tauidx,loadidx)
+    print(v) 
+    #print(nod.All_delays[loadidx][tauidx])
+
+def interpolate(Cload,Tau,Cload_list,Tauin_list):
+    t1 = t2 = c1 = c2 = 0
+    for idx_cap,cap in enumerate(Cload_list):
+        if cap<=Cload:
+            c1 = cap
+            idx0 = idx_cap
+        if cap>=Cload:
+            c2 = cap
+            idx1 = idx_cap
+            break   
+    for idx_slew,slew in enumerate(Tauin_list):
+        if slew<=Tau:
+            t1 = slew
+            idx2 = idx_slew
+        if slew>=Tau:
+            t2 = slew
+            idx3 = idx_slew
+            break
+    return(idx0,idx1,idx2,idx3,t1,t2,c1,c2)
+
+# Function to calculate delay and update tau_out values of each gate:
+def fn_update_tauout():
+    for gate in gate_obj_dict:
+        get_delay(gate_obj_dict.get(gate).name, gate_obj_dict.get(gate).cload, gate_obj_dict.get(gate).tau_in)
+
+# phase-2 end
+
 # Function for reading the .bench file and populate the necessary circuit details:
 def read_ckt():
     with open(input_filepath, "r") as file:
@@ -313,7 +376,6 @@ def read_ckt():
     fn_gate_detail_parser(data)
     # fn_fanout_parser()
     fn_fanin_parser()
-
 
 # if args.read_nldm:
 #     nldm()
@@ -331,6 +393,7 @@ nldm()
 delay()
 slew()
 fn_fanout_parser()
+fn_update_tauout()
 
 # print("Enter:\n1. Read Ckt\n2. Read NLDM")
 # opt = int(input())
