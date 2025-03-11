@@ -1,5 +1,4 @@
 from circuit_parser import *
-from nldm_parser import *
 
 longest_path = []
 

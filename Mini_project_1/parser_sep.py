@@ -4,6 +4,7 @@ from traversal import *
 
 out_node = ""
 max_time = 0.0
+req_time = 0.0
 
 # Main function calls
 nldm()
@@ -33,7 +34,8 @@ for gate in circuit_output_lines:
 backtraversal(out_node, max_time)
 longest_path.reverse()
 
-print(f"Circuit Delay: {(max_time * 1000) : .4f}ps")
+req_time = max_time * 1.1
+print(f"Circuit Delay: {(max_time * 1000) : .4f}ps, {req_time}")
 print(f"Critical Path:\n{', '.join(longest_path)}")
 
 # Need to remove
