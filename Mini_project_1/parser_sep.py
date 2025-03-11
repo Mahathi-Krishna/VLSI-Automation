@@ -1,6 +1,10 @@
 from circuit_parser import *
 from nldm_parser import *
 
+out_node = ""
+max_out_arr_time = 0.0
+longest_path = []
+
 nldm()
 delay()
 slew()
@@ -8,11 +12,12 @@ read_ckt()
 
 # phase-2 start
 # For topological traversal
-def topsort(v):
+def topologicaltraversal(v):
     # Calculate delay & slew of current node
     # Update the tau_in and in_arr_time of its next neighbor in forward direction
     gate_name = v
     if(gate_name.split('-')[0] != 'INPUT'):
+        fanin = len(gate_obj_dict.get(gate_name).inputs)
         a_plus_di = 0.0
         curr_path = ""
         cload = gate_obj_dict.get(gate_name).cload
@@ -22,6 +27,12 @@ def topsort(v):
             tau = gate_obj_dict.get(gate_name).tau_in.get(tau_pin)
             arr_time =  gate_obj_dict.get(gate_name).in_arr_time.get(tau_pin)
             delay, slew = get_delay_slew(gate_name, cload, tau)
+
+            if(fanin > 2):
+                print(gate_name, fanin)
+                delay = delay * (fanin / 2)
+                slew = slew * (fanin / 2)
+
             a_plus_di_new = arr_time + delay
             gate_obj_dict.get(gate_name).delay[tau_pin] = delay
             gate_obj_dict.get(gate_name).pathslew[tau_pin] = slew
@@ -44,6 +55,19 @@ def topsort(v):
                 gate.visited = 1
                 Q.append(gate.name)
                 tempQ.append(gate.name)
+    
+    # Update OUTPUT nodes:
+    if(gate_name.split('-')[1] in circuit_output_lines):
+        output_node = circuit_output_lines[gate_name.split('-')[1]]
+        gate_obj_dict.get(output_node).out_arr_time[gate_name] = gate_obj_dict.get(gate_name).max_out_arr_time
+        gate_obj_dict.get(output_node).max_out_arr_time = gate_obj_dict.get(gate_name).max_out_arr_time
+
+# Backtraversal to find the longest delay path:
+def backtraversal(out_node):
+    out_arr_time = gate_obj_dict.get(out_node).out_arr_time
+    gate_name, max_out_arr_time = next(iter(out_arr_time.items()))
+    print(out_node, gate_name, max_out_arr_time)
+
 
 # Create a Q and append all the input nodes to begin with the top traversal:
 for i in circuit_input_lines:
@@ -51,14 +75,26 @@ for i in circuit_input_lines:
     tempQ.append(circuit_input_lines[i])
 while Q:
     v = Q.popleft()
-    topsort(v)
+    topologicaltraversal(v)
 
-print(tempQ)
+# print('Traversal:\n', tempQ)
+
+# Find the output node with longest delay:
+for gate in circuit_output_lines:
+    gate = circuit_output_lines[gate]
+    out_arr_time = gate_obj_dict.get(gate).max_out_arr_time
+    
+    if out_arr_time > max_out_arr_time:
+        max_out_arr_time = out_arr_time
+        out_node = gate
+print(out_node, max_out_arr_time)
+backtraversal('NAND-22', max_out_arr_time)
 
 # Need to remove
 str_data = "" + '\n\n'
 for val in gate_obj_dict.values():
     mystr = val.__dict__
+    # print('\nname:', val.name, '\tin_arr_time:', val.in_arr_time, '\tdelay:', val.delay, '\nout_arr_time:', val.out_arr_time, '\tmax_out_arr_time:', val.max_out_arr_time)
     str_data = str_data + str(mystr) + '\n'
 fn_w_circuit_file(0, circuitfile, 'a', str_data)
 # phase-2 end
