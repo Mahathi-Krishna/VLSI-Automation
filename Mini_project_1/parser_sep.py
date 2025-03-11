@@ -2,16 +2,12 @@ from circuit_parser import *
 from nldm_parser import *
 
 out_node = ""
-max_out_arr_time = 0.0
+max_time = 0.0
 longest_path = []
 
-nldm()
-delay()
-slew()
-read_ckt()
 
 # phase-2 start
-# For topological traversal
+# Topological traversal of nodes to update delay and slew values
 def topologicaltraversal(v):
     # Calculate delay & slew of current node
     # Update the tau_in and in_arr_time of its next neighbor in forward direction
@@ -63,11 +59,20 @@ def topologicaltraversal(v):
         gate_obj_dict.get(output_node).max_out_arr_time = gate_obj_dict.get(gate_name).max_out_arr_time
 
 # Backtraversal to find the longest delay path:
-def backtraversal(out_node):
-    out_arr_time = gate_obj_dict.get(out_node).out_arr_time
-    gate_name, max_out_arr_time = next(iter(out_arr_time.items()))
-    print(out_node, gate_name, max_out_arr_time)
+def backtraversal(out_node, out_arr_time):
+    longest_path.append(out_node)
+    if(out_node.split('-')[0] == 'INPUT'):
+        return
+    next_node = next((key for key, value in gate_obj_dict.get(out_node).out_arr_time.items() if value == out_arr_time), out_node)
+    out_arr_time = gate_obj_dict.get(next_node).max_out_arr_time
+    backtraversal(next_node, out_arr_time)
 
+
+# Main function calls
+nldm()
+delay()
+slew()
+read_ckt()
 
 # Create a Q and append all the input nodes to begin with the top traversal:
 for i in circuit_input_lines:
@@ -82,19 +87,22 @@ while Q:
 # Find the output node with longest delay:
 for gate in circuit_output_lines:
     gate = circuit_output_lines[gate]
-    out_arr_time = gate_obj_dict.get(gate).max_out_arr_time
-    
-    if out_arr_time > max_out_arr_time:
-        max_out_arr_time = out_arr_time
+    out_time = gate_obj_dict.get(gate).max_out_arr_time
+    if out_time > max_time:
+        max_time = out_time
         out_node = gate
-print(out_node, max_out_arr_time)
-backtraversal('NAND-22', max_out_arr_time)
+
+# Start backtraversal from the output node to find the delay path:
+backtraversal(out_node, max_time)
+longest_path.reverse()
+
+print(f"Circuit Delay: {(max_time * 1000) : .4f}ps")
+print(f"Critical Path:\n{', '.join(longest_path)}")
 
 # Need to remove
 str_data = "" + '\n\n'
 for val in gate_obj_dict.values():
     mystr = val.__dict__
-    # print('\nname:', val.name, '\tin_arr_time:', val.in_arr_time, '\tdelay:', val.delay, '\nout_arr_time:', val.out_arr_time, '\tmax_out_arr_time:', val.max_out_arr_time)
     str_data = str_data + str(mystr) + '\n'
 fn_w_circuit_file(0, circuitfile, 'a', str_data)
 # phase-2 end

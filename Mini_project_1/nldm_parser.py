@@ -87,10 +87,10 @@ def nldm():
     gates_nldm,input_slew,load_cap,all_values,capacitance = lut_instance.assign_arrays(input_filepath) # phase-2
     for i in range(0,len(gates_nldm)):
         if(i==0):
-            node = LUT(gates_nldm[i],all_values[i],all_values[i+1],load_cap[i+2],input_slew[i+2],load_cap[i+3],input_slew[i+3],capacitance[i])
+            node = LUT(gates_nldm[i],all_values[i],all_values[i+1],load_cap[i+2],input_slew[i+2],load_cap[i+2],input_slew[i+2],capacitance[i])
             nodes[gates_nldm[i]] = node
         else:
-            node = LUT(gates_nldm[i],all_values[i+i],all_values[i+i+1],load_cap[i+2],input_slew[i+2],load_cap[i+3],input_slew[i+3],capacitance[i])
+            node = LUT(gates_nldm[i],all_values[i+i],all_values[i+i+1],load_cap[i+2],input_slew[i+2],load_cap[i+2],input_slew[i+2],capacitance[i])
             nodes[gates_nldm[i]] = node
 
 # Function to call for delay
