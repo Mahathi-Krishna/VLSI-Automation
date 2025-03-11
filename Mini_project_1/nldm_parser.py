@@ -8,6 +8,8 @@ All_delay = ''                      #To hold all the dleay values from the NLDM 
 All_slews=''                        #To hold slew data from the NLDM file
 Cload_vals=''                       #To holde the load cap values from the nldm file
 Tau_in_vals = ''                    #To hold slew data from the NLDM file
+Cloadslew=''                       #To holde the load cap values from the nldm file
+Tau_in_slew = ''                    #To hold slew data from the NLDM file
 circuitfile = 'ckt_details.txt'     #Output file for the bench parser
 data = []                           # holds the file data
 capacitance = []
@@ -17,12 +19,14 @@ input_filepath = './sample_NLDM.lib'
 
 # Class for NLDM:
 class LUT:
-    def __init__(self,Allgate_name,All_delay,All_slews,Cload_vals,Tau_in_vals,inputcap):
+    def __init__(self,Allgate_name,All_delay,All_slews,Cload_vals,Tau_in_vals,Cloadslew,Tau_in_slew,inputcap):
         self.Allgate_name = Allgate_name
         self.All_delays = All_delay
         self.All_slews = All_slews
         self.Cload_vals = Cload_vals
         self.Tau_in_vals = Tau_in_vals
+        self.Cloadslew = Cloadslew
+        self.Tau_in_slew = Tau_in_slew
         self.inputcap = inputcap
     def assign_arrays(self,NLDM_file):  #Function to pass the NLDM file and retrive the data , returns the required data from the NLDM file
         nodes = {}
@@ -79,14 +83,14 @@ class LUT:
 
 # Funciton called when the command line calls to parse for nldm file
 def nldm():
-    lut_instance = LUT(Allgate_name,All_delay,All_slews,Cload_vals,Tau_in_vals,inputcap)
+    lut_instance = LUT(Allgate_name,All_delay,All_slews,Cload_vals,Tau_in_vals,Cloadslew,Tau_in_slew,inputcap)
     gates_nldm,input_slew,load_cap,all_values,capacitance = lut_instance.assign_arrays(input_filepath) # phase-2
     for i in range(0,len(gates_nldm)):
         if(i==0):
-            node = LUT(gates_nldm[i],all_values[i],all_values[i+1],load_cap[i+2],input_slew[i+2],capacitance[i])
+            node = LUT(gates_nldm[i],all_values[i],all_values[i+1],load_cap[i+2],input_slew[i+2],load_cap[i+3],input_slew[i+3],capacitance[i])
             nodes[gates_nldm[i]] = node
         else:
-            node = LUT(gates_nldm[i],all_values[i+i],all_values[i+i+1],load_cap[i+2],input_slew[i+2],capacitance[i])
+            node = LUT(gates_nldm[i],all_values[i+i],all_values[i+i+1],load_cap[i+2],input_slew[i+2],load_cap[i+3],input_slew[i+3],capacitance[i])
             nodes[gates_nldm[i]] = node
 
 # Function to call for delay
@@ -114,40 +118,66 @@ def slew():
             f.write(temp)
 
 # phase-2 start:
-def get_delay(gate_name,Cload,Tau):
+def get_delay_slew(gate_name,Cload,Tau):
     tauidx = 0
     loadidx = 0
     idx0 = idx1 = idx2 = idx3 = t1 = t2 = c1 = c2 = 0
-    v = 0.0
+    delay = 0.0
+    slew = 0.0
     gate_name = 'INV' if gate_name.split('-')[0] == 'NOT' else 'BUF' if gate_name.split('-')[0] == 'BUFF' else gate_name.split('-')[0]
     for nod in nodes.values():
         if re.sub(r"\d", "", nod.Allgate_name.split('_')[0]) == gate_name:
-            Cload_list = [float(num) for num in nod.Cload_vals.split(",") if num.strip()]
-            Tauin_list = [float(num) for num in nod.Tau_in_vals.split(",") if num.strip()]
-            #print(Cload_list,Tauin_list)
+            Cload_list_delay = [float(num) for num in nod.Cload_vals.split(",") if num.strip()]
+            Tauin_list_delay = [float(num) for num in nod.Tau_in_vals.split(",") if num.strip()]
+            Cload_list_slew = [float(num) for num in nod.Cloadslew.split(",") if num.strip()]
+            Tauin_list_slew = [float(num) for num in nod.Tau_in_slew.split(",") if num.strip()]
             c = Cload
             t = Tau
-            for index,val in enumerate(Cload_list):
+            
+            # Delay
+            for index,val in enumerate(Cload_list_delay):
                 if val == Cload:
                     loadidx = index
-            for index,val in enumerate(Tauin_list):
+            for index,val in enumerate(Tauin_list_delay):
                 if val == Tau:
                     tauidx = index
             
             if (loadidx == 0) and (tauidx == 0):
-                idx0,idx1,idx2,idx3,t1,t2,c1,c2= interpolate(Cload,Tau,Cload_list,Tauin_list)
-                print(c1,c2,t1,t2)
-                print(c,t)
+                if Tau == 0:
+                    print('Notfound')
+                    continue
+                
+                idx0,idx1,idx2,idx3,t1,t2,c1,c2= interpolate(Cload,Tau,Cload_list_delay,Tauin_list_delay)
                 v11 = float(nod.All_delays[idx2][idx0])
                 v12 = float(nod.All_delays[idx2][idx1])
                 v21 = float(nod.All_delays[idx3][idx0])
                 v22 = float(nod.All_delays[idx3][idx1])
-                print(v11,v12,v21,v22)
-                v = v11*(c2-c)*(t2-t)+v12*(c-c1)*(t2-t)+v21*(c2-c)*(t-t1)+v22*(c-c1)*(t-t1)/(c2-c1)*(t2-t1) 
+                delay = (v11*(c2-c)*(t2-t) + v12*(c-c1)*(t2-t) + v21*(c2-c)*(t-t1) + v22*(c-c1)*(t-t1)) / ((c2-c1)*(t2-t1))
             else:
-                v = (tauidx,loadidx)
-    print(v) 
-    #print(nod.All_delays[loadidx][tauidx])
+                delay = All_delay[tauidx][loadidx]
+            
+            # Slew
+            for index,val in enumerate(Cload_list_slew):
+                if val == Cload:
+                    loadidx = index
+            for index,val in enumerate(Tauin_list_slew):
+                if val == Tau:
+                    tauidx = index
+            
+            if (loadidx == 0) and (tauidx == 0):
+                if Tau == 0:
+                    print('Notfound')
+                    continue
+                
+                idx0,idx1,idx2,idx3,t1,t2,c1,c2= interpolate(Cload,Tau,Cload_list_slew,Tauin_list_slew)
+                v11 = float(nod.All_slews[idx2][idx0])
+                v12 = float(nod.All_slews[idx2][idx1])
+                v21 = float(nod.All_slews[idx3][idx0])
+                v22 = float(nod.All_slews[idx3][idx1])
+                slew = (v11*(c2-c)*(t2-t) + v12*(c-c1)*(t2-t) + v21*(c2-c)*(t-t1) + v22*(c-c1)*(t-t1)) / ((c2-c1)*(t2-t1))
+            else:
+                slew = All_slews[tauidx][loadidx]
+    return delay,slew
 
 def interpolate(Cload,Tau,Cload_list,Tauin_list):
     t1 = t2 = c1 = c2 = 0

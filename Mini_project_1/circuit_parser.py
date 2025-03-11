@@ -36,10 +36,12 @@ class Node:
         self.inputs = []        # fanin details
         self.outputs = []       # fanout details
         self.visited = 0        # phase-2
-        self.tau_in = []
+        self.in_arr_time = {}
+        self.tau_in = {}
+        self.delay = {}
+        self.pathslew = {}
         self.tau_out = 0.0
-        self.in_arr_time = []
-        self.out_arr_time = []
+        self.out_arr_time = {}
         self.max_out_arr_time = 0.0
     
         # phase-2
@@ -73,8 +75,8 @@ def fn_io_parser(lines):
                 circuit_input_lines[outpin] = name
                 gate = Node(name)
                 gate.gate = name.split('-')[0]
-                gate.in_arr_time.append(0)
-                gate.tau_in.append(0.002)
+                gate.in_arr_time[name] = 0.0
+                gate.tau_in[name] = 0.002
                 gate.outpin = outpin
                 gate_obj_dict[name] = gate
             
@@ -154,8 +156,8 @@ def fn_fanin_parser():
             for i in gate_obj_dict.get(gate).inputs:
                 if (i.split('-')[1] in circuit_input_lines.keys()):
                     str_data = str_data + ' ' + circuit_input_lines.get(i.split('-')[1]) + ','
-                    gate_obj_dict.get(gate).tau_in.append(0.002) # phase-2
-                    gate_obj_dict.get(gate).in_arr_time.append(0) # phase-2
+                    gate_obj_dict.get(gate).tau_in[i] = 0.002 # phase-2
+                    gate_obj_dict.get(gate).in_arr_time[i] = 0.0 # phase-2
                 elif (i.split('-')[1] in circuit_intermediate_outputs.keys()):
                     str_data = str_data + ' ' + circuit_intermediate_outputs.get(i.split('-')[1]) + ','
             str_data = str_data.strip(',') + '\n'
@@ -192,11 +194,6 @@ def fn_fanout_parser():
         str_data = str_data.strip(',') + '\n'
         gate_obj_dict.get(gatename).outputs = tempList # phase-2
     
-    # Need to remove
-    str_data = str_data + '\n\n'
-    for val in gate_obj_dict.values():
-        mystr = val.__dict__
-        str_data = str_data + str(mystr) + '\n'
     fn_w_circuit_file(0, circuitfile, 'a', str_data)
 
 # Function for reading the .bench file and populate the necessary circuit details:
