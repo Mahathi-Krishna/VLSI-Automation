@@ -81,11 +81,14 @@ def backtrack():
             max_time = out_time
             out_node = gate
     req_time = max_time * 1.1
+    
     # Start backtrack from the output node to find the delay path:
     longestpath(out_node, max_time)
     longest_path.reverse()
+    
     # Calculate required time and slack:
     calculateslack()
+    
     return max_time
 
 # Calculate Required time & slack details of each gate:
