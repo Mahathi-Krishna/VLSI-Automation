@@ -1,8 +1,13 @@
+from collections import deque
 from circuit_parser import *
 
+out_node = ""
+max_time = 0.0
+req_time = 0.0
 longest_path = []
+Q = deque()
 
-# Topological traversal of nodes to update delay and slew values
+# Topological traversal of nodes to update delay and slew values:
 def topologicaltraversal(v):
     # Calculate delay & slew of current node
     # Update the tau_in and in_arr_time of its next neighbor in forward direction
@@ -53,11 +58,38 @@ def topologicaltraversal(v):
         gate_obj_dict.get(output_node).out_arr_time[gate_name] = gate_obj_dict.get(gate_name).max_out_arr_time
         gate_obj_dict.get(output_node).max_out_arr_time = gate_obj_dict.get(gate_name).max_out_arr_time
 
-# Backtraversal to find the longest delay path:
-def backtraversal(out_node, out_arr_time):
+# Backtrack from output node to input node to find the longest delay path:
+def longestpath(out_node, out_arr_time):
     longest_path.append(out_node)
     if(out_node.split('-')[0] == 'INPUT'):
         return
     next_node = next((key for key, value in gate_obj_dict.get(out_node).out_arr_time.items() if value == out_arr_time), out_node)
     out_arr_time = gate_obj_dict.get(next_node).max_out_arr_time
-    backtraversal(next_node, out_arr_time)
+    # Recursively backtraverse all nodes
+    longestpath(next_node, out_arr_time)
+
+# Find the output node with longest delay:
+def backtrack():
+    global req_time
+    global max_time
+
+    for gate in circuit_output_lines:
+        gate = circuit_output_lines[gate]
+        Q.append(gate)
+        out_time = gate_obj_dict.get(gate).max_out_arr_time
+        if out_time > max_time:
+            max_time = out_time
+            out_node = gate
+    req_time = max_time * 1.1
+    # Start backtrack from the output node to find the delay path:
+    longestpath(out_node, max_time)
+    longest_path.reverse()
+    # Calculate required time and slack:
+    calculateslack()
+    return max_time
+
+# Calculate Required time & slack details of each gate:
+def calculateslack():
+    while Q:
+        gate = Q.popleft()
+        print(gate)

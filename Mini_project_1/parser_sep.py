@@ -2,10 +2,6 @@ from circuit_parser import *
 from nldm_parser import *
 from traversal import *
 
-out_node = ""
-max_time = 0.0
-req_time = 0.0
-
 # Main function calls
 nldm()
 delay()
@@ -22,20 +18,9 @@ while Q:
 
 # print('Traversal:\n', tempQ)
 
-# Find the output node with longest delay:
-for gate in circuit_output_lines:
-    gate = circuit_output_lines[gate]
-    out_time = gate_obj_dict.get(gate).max_out_arr_time
-    if out_time > max_time:
-        max_time = out_time
-        out_node = gate
+max_time = backtrack()
 
-# Start backtraversal from the output node to find the delay path:
-backtraversal(out_node, max_time)
-longest_path.reverse()
-
-req_time = max_time * 1.1
-print(f"Circuit Delay: {(max_time * 1000) : .4f}ps, {req_time}")
+print(f"Circuit Delay: {(max_time * 1000) : .4f} ps")
 print(f"Critical Path:\n{', '.join(longest_path)}")
 
 # Need to remove
@@ -43,5 +28,6 @@ str_data = "" + '\n\n'
 for val in gate_obj_dict.values():
     mystr = val.__dict__
     str_data = str_data + str(mystr) + '\n'
+    # print('name:', val.name, 'delay:', val.delay, 'in_time:', val.in_arr_time, '\nout_time:', val.out_arr_time, 'max:', val.max_out_arr_time, '\n')
 fn_w_circuit_file(0, circuitfile, 'a', str_data)
 # phase-2 end
