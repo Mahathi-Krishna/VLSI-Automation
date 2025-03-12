@@ -54,6 +54,10 @@ class Node:
         for items in nodes.values():
             if gate_name == re.sub(r"\d", "", items.Allgate_name.split('_')[0]):
                 self.cin = items.inputcap
+        
+        # For storing cload of output nodes
+        if (self.name.split('-')[0] == 'OUTPUT' or self.name.split('-')[1] in circuit_output_lines.keys()):
+            self.cload = 4 * loadcap_inv
 
 # Function to write to a file:
 def fn_w_circuit_file(is_truncate, file_name, mode, data):
@@ -193,7 +197,6 @@ def fn_fanout_parser():
            gate_type = circuit_output_lines[gate_id]
            str_data = str_data + ' ' + gate_type + ','
            tempList.append('OUTPUT-' + gate_id) # phase-2
-           gate_obj_dict.get(gatename).cload = 4 * loadcap_inv
 
         str_data = str_data.strip(',') + '\n'
         gate_obj_dict.get(gatename).outputs = tempList # phase-2

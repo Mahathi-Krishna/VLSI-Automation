@@ -119,83 +119,77 @@ def slew():
 
 # phase-2 start:
 def get_delay_slew(gate_name,Cload,Tau):
-    tauidx = 0
-    loadidx = 0
-    idx0 = idx1 = idx2 = idx3 = t1 = t2 = c1 = c2 = 0
     delay = 0.0
     slew = 0.0
-    gate_name = 'INV' if gate_name.split('-')[0] == 'NOT' else 'BUF' if gate_name.split('-')[0] == 'BUFF' else gate_name.split('-')[0]
+    tauidx = 0
+    loadidx = 0
+    v = v11 = v12 = v21 = v22 = c1 = c2 = t1 = t2 =  0.0
+    c = Cload
+    t = Tau
+    
     for nod in nodes.values():
+        gate_name = 'INV' if gate_name.split('-')[0] == 'NOT' else 'BUF' if gate_name.split('-')[0] == 'BUFF' else gate_name.split('-')[0]
         if re.sub(r"\d", "", nod.Allgate_name.split('_')[0]) == gate_name:
-            Cload_list_delay = [float(num) for num in nod.Cload_vals.split(",") if num.strip()]
-            Tauin_list_delay = [float(num) for num in nod.Tau_in_vals.split(",") if num.strip()]
-            Cload_list_slew = [float(num) for num in nod.Cloadslew.split(",") if num.strip()]
-            Tauin_list_slew = [float(num) for num in nod.Tau_in_slew.split(",") if num.strip()]
-            c = Cload
-            t = Tau
-            
-            # Delay
-            for index,val in enumerate(Cload_list_delay):
-                if val == Cload:
-                    loadidx = index
-            for index,val in enumerate(Tauin_list_delay):
-                if val == Tau:
-                    tauidx = index
-            
-            if (loadidx == 0) and (tauidx == 0):
-                if Tau == 0:
-                    print('Notfound')
-                    continue
-                
-                idx0,idx1,idx2,idx3,t1,t2,c1,c2= interpolate(Cload,Tau,Cload_list_delay,Tauin_list_delay)
-                v11 = float(nod.All_delays[idx2][idx0])
-                v12 = float(nod.All_delays[idx2][idx1])
-                v21 = float(nod.All_delays[idx3][idx0])
-                v22 = float(nod.All_delays[idx3][idx1])
-                delay = (v11*(c2-c)*(t2-t) + v12*(c-c1)*(t2-t) + v21*(c2-c)*(t-t1) + v22*(c-c1)*(t-t1)) / ((c2-c1)*(t2-t1))
+            Cload_list = [float(num) for num in nod.Cload_vals.split(",") if num.strip()]
+            Tauin_list = [float(num) for num in nod.Tau_in_vals.split(",") if num.strip()]
+            if (Tau in Tauin_list) and (Cload in Cload_list):
+                for i in range(0,len(Cload_list)):
+                    if(Cload == Cload_list[i]):
+                        loadidx = i
+                for j in range(0,len(Tauin_list)):
+                    if(Tau == Tauin_list[j]):
+                        tauidx = j
+                delay = nod.All_delays[tauidx][loadidx]
+                slew = nod.All_slews[tauidx][loadidx]
             else:
-                delay = All_delay[tauidx][loadidx]
-            
-            # Slew
-            for index,val in enumerate(Cload_list_slew):
-                if val == Cload:
-                    loadidx = index
-            for index,val in enumerate(Tauin_list_slew):
-                if val == Tau:
-                    tauidx = index
-            
-            if (loadidx == 0) and (tauidx == 0):
-                if Tau == 0:
-                    print('Notfound')
-                    continue
-                
-                idx0,idx1,idx2,idx3,t1,t2,c1,c2= interpolate(Cload,Tau,Cload_list_slew,Tauin_list_slew)
-                v11 = float(nod.All_slews[idx2][idx0])
-                v12 = float(nod.All_slews[idx2][idx1])
-                v21 = float(nod.All_slews[idx3][idx0])
-                v22 = float(nod.All_slews[idx3][idx1])
-                slew = (v11*(c2-c)*(t2-t) + v12*(c-c1)*(t2-t) + v21*(c2-c)*(t-t1) + v22*(c-c1)*(t-t1)) / ((c2-c1)*(t2-t1))
-            else:
-                slew = All_slews[tauidx][loadidx]
-    return delay,slew
+                if (Tau > Tauin_list[len(Tauin_list)-1]):
+                    p = len(Tauin_list)-2
+                    q = len(Tauin_list)-1
+                elif (Tau < Tauin_list[0]):
+                    p = 0
+                    q = 1  
+                else:
+                    p = q = 0  
+                    for idx_slew,slew in enumerate(Tauin_list):
+                        if slew<=Tau:
+                            p = idx_slew
+                        if slew>=Tau:
+                            q = idx_slew
+                            break
+                if (Cload > Cload_list[len(Cload_list)-1]):
+                    r = len(Cload_list)-2
+                    s = len(Cload_list)-1
+                elif (Cload < Cload_list[0]):
+                    r = 0
+                    s = 1  
+                else:
+                    r = s = 0  
+                    for idx_cap,cap in enumerate(Cload_list):
+                        if cap<=Cload:
+                            r = idx_cap
+                        if cap>=Cload:
+                            s = idx_cap
+                            break 
+                t1 = Tauin_list[p]
+                t2 = Tauin_list[q]
+                c1 = Cload_list[r]
+                c2 = Cload_list[s]
+                v11 = float(nod.All_delays[p][r])
+                v12 = float(nod.All_delays[p][s])
+                v21 = float(nod.All_delays[q][r])
+                v22 = float(nod.All_delays[q][s])
+                #print('p',p,'q',q,'r',r,'s',s,'c1',c1,'c2',c2,'t1',t1,'t2',t2,'name',gate_name,'cload',Cload,'Tau',Tau)
+                delay = (v11*(c2-c)*(t2-t)+v12*(c-c1)*(t2-t)+v21*(c2-c)*(t-t1)+v22*(c-c1)*(t-t1))/((c2-c1)*(t2-t1))
+                #slew
+                v11 = float(nod.All_slews[p][r])
+                v12 = float(nod.All_slews[p][s])
+                v21 = float(nod.All_slews[q][r])
+                v22 = float(nod.All_slews[q][s])
+                slew = (v11*(c2-c)*(t2-t)+v12*(c-c1)*(t2-t)+v21*(c2-c)*(t-t1)+v22*(c-c1)*(t-t1))/((c2-c1)*(t2-t1))
+        if(slew<0.002):
+            slew = 0.002
+        if(delay<0):
+            delay = 0
 
-def interpolate(Cload,Tau,Cload_list,Tauin_list):
-    t1 = t2 = c1 = c2 = 0
-    for idx_cap,cap in enumerate(Cload_list):
-        if cap<=Cload:
-            c1 = cap
-            idx0 = idx_cap
-        if cap>=Cload:
-            c2 = cap
-            idx1 = idx_cap
-            break   
-    for idx_slew,slew in enumerate(Tauin_list):
-        if slew<=Tau:
-            t1 = slew
-            idx2 = idx_slew
-        if slew>=Tau:
-            t2 = slew
-            idx3 = idx_slew
-            break
-    return(idx0,idx1,idx2,idx3,t1,t2,c1,c2)
+    return delay,slew
 # phase-2 end

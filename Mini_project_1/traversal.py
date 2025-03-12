@@ -4,6 +4,7 @@ from circuit_parser import *
 out_node = ""
 max_time = 0.0
 req_time = 0.0
+min_slack = 1000.00
 longest_path = []
 Q = deque()
 
@@ -52,27 +53,46 @@ def topologicaltraversal(v):
                 tempQ.append(gate.name)
     
     # Update OUTPUT nodes:
-    if(gate_name.split('-')[1] in circuit_output_lines):
+    if(gate_name.split('-')[0] != 'INPUT' and gate_name.split('-')[1] in circuit_output_lines):
         output_node = circuit_output_lines[gate_name.split('-')[1]]
         gate_obj_dict.get(output_node).inputs.append(gate_name)
         gate_obj_dict.get(output_node).out_arr_time[gate_name] = gate_obj_dict.get(gate_name).max_out_arr_time
         gate_obj_dict.get(output_node).max_out_arr_time = gate_obj_dict.get(gate_name).max_out_arr_time
 
 # Backtrack from output node to input node to find the longest delay path:
-def longestpath(out_node, out_arr_time):
+def longestpath(out_node, gate_value, delay_or_slack):
     longest_path.append(out_node)
     if(out_node.split('-')[0] == 'INPUT'):
         return
-    next_node = next((key for key, value in gate_obj_dict.get(out_node).out_arr_time.items() if value == out_arr_time), out_node)
-    out_arr_time = gate_obj_dict.get(next_node).max_out_arr_time
-    # Recursively backtraverse all nodes
-    longestpath(next_node, out_arr_time)
+    
+    if(delay_or_slack == 'delay'): # Check with delay
+        next_node = next((key for key, value in gate_obj_dict.get(out_node).out_arr_time.items() if value == gate_value), out_node)
+        gate_value = gate_obj_dict.get(next_node).max_out_arr_time
+        # Recursively backtraverse all nodes
+        longestpath(next_node, gate_value, delay_or_slack)
+    
+    elif(delay_or_slack == 'slack'): # Check with slack
+        # next_node = None
+        for nextnode in gate_obj_dict.get(out_node).inputs:
+            if(round(gate_obj_dict.get(nextnode).slack,5) == round(gate_value,5)):
+                next_node = gate_obj_dict.get(nextnode).name
+                gate_value = gate_obj_dict.get(nextnode).slack
+                break
+        
+        # if next_node is None:  # If no valid next_node was found, return to prevent errors
+        #     print(f"Error: No valid next node found for {out_node}")
+        #     return
+        
+        # Recursively backtraverse all nodes
+        longestpath(next_node, gate_value, delay_or_slack)
 
 # Find the output node with longest delay:
 def backtrack():
     global req_time
     global max_time
+    global min_slack
 
+    # To find max required time:
     for gate in circuit_output_lines:
         gate = circuit_output_lines[gate]
         Q.append(gate)
@@ -82,13 +102,24 @@ def backtrack():
             out_node = gate
     req_time = max_time * 1.1
     
-    # Start backtrack from the output node to find the delay path:
-    longestpath(out_node, max_time)
-    longest_path.reverse()
-    
     # Calculate required time and slack:
     calculateslack()
+
+    # To find min slack:
+    for gate in circuit_output_lines:
+        gate = circuit_output_lines[gate]
+        slack = gate_obj_dict.get(gate).slack
+        if slack < min_slack:
+            min_slack = slack
+            out_node = gate
     
+    # Start from the output node with max delay to find the delay path:
+    # longestpath(out_node, max_time, 'delay')
+
+    # Start from the output node with minimum slack to find the delay path:
+    longestpath(out_node, min_slack, 'slack')
+
+    longest_path.reverse()
     return max_time
 
 # Calculate Required time & slack details of each gate:
