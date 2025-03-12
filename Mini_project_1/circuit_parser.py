@@ -17,8 +17,6 @@ gate_type_list = []                 # stores the type of each gate
 gate_input_list = []                # stores the inputs of each gate as list of list
 gate_cload_list = []                # stores the cload of each gate as list
 
-input_filepath = './c17.bench'
-
 # phase-2
 str_data = ""
 loadcap_inv = 0.0                   # cap of inv
@@ -204,7 +202,8 @@ def fn_fanout_parser():
     # fn_w_circuit_file(0, circuitfile, 'a', str_data)
 
 # Function for reading the .bench file and populate the necessary circuit details:
-def read_ckt():
+def read_ckt(circuit_filepath):
+    input_filepath = circuit_filepath
     with open(input_filepath, "r") as file:
         data = file.readlines()
     global loadcap_inv

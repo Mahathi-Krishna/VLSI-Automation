@@ -15,8 +15,6 @@ data = []                           # holds the file data
 capacitance = []
 inputcap = 0
 
-input_filepath = './sample_NLDM.lib'
-
 # Class for NLDM:
 class LUT:
     def __init__(self,Allgate_name,All_delay,All_slews,Cload_vals,Tau_in_vals,Cloadslew,Tau_in_slew,inputcap):
@@ -82,7 +80,8 @@ class LUT:
         return(gates_nldm,input_slew,load_cap,all_values,cap)
 
 # Funciton called when the command line calls to parse for nldm file
-def nldm():
+def nldm(nldm_filepath):
+    input_filepath = nldm_filepath
     lut_instance = LUT(Allgate_name,All_delay,All_slews,Cload_vals,Tau_in_vals,Cloadslew,Tau_in_slew,inputcap)
     gates_nldm,input_slew,load_cap,all_values,capacitance = lut_instance.assign_arrays(input_filepath) # phase-2
     for i in range(0,len(gates_nldm)):
