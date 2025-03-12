@@ -2,6 +2,8 @@ from circuit_parser import *
 from nldm_parser import *
 from traversal import *
 
+str_data = ""
+
 # Main function calls
 nldm()
 delay()
@@ -20,14 +22,13 @@ while Q:
 
 max_time = backtrack()
 
-print(f"Circuit Delay: {(max_time * 1000) : .4f} ps")
-print(f"Critical Path:\n{', '.join(longest_path)}")
-
-# Need to remove
-str_data = "" + '\n\n'
+str_data = f"\nCircuit Delay: {(max_time * 1000) :.4f} ps\n\n"
+str_data = str_data + "Gate Slacks:\n"
 for val in gate_obj_dict.values():
-    mystr = val.__dict__
+    mystr = f"{val.name}: {val.slack * 1000 :.5f} ps"
     str_data = str_data + str(mystr) + '\n'
-    # print('name:', val.name, 'delay:', val.delay, 'in_time:', val.in_arr_time, '\nout_time:', val.out_arr_time, 'max:', val.max_out_arr_time, '\n')
+
+str_data = str_data + f"\nCritical Path:\n{', '.join(longest_path)}"
+
 fn_w_circuit_file(0, circuitfile, 'a', str_data)
 # phase-2 end

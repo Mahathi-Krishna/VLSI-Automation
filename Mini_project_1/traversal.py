@@ -25,7 +25,6 @@ def topologicaltraversal(v):
             delay, slew = get_delay_slew(gate_name, cload, tau)
 
             if(fanin > 2):
-                print(gate_name, fanin)
                 delay = delay * (fanin / 2)
                 slew = slew * (fanin / 2)
 
@@ -55,6 +54,7 @@ def topologicaltraversal(v):
     # Update OUTPUT nodes:
     if(gate_name.split('-')[1] in circuit_output_lines):
         output_node = circuit_output_lines[gate_name.split('-')[1]]
+        gate_obj_dict.get(output_node).inputs.append(gate_name)
         gate_obj_dict.get(output_node).out_arr_time[gate_name] = gate_obj_dict.get(gate_name).max_out_arr_time
         gate_obj_dict.get(output_node).max_out_arr_time = gate_obj_dict.get(gate_name).max_out_arr_time
 
@@ -95,4 +95,56 @@ def backtrack():
 def calculateslack():
     while Q:
         gate = Q.popleft()
-        print(gate)
+        if(gate_obj_dict.get(gate).visited == 2):
+            continue
+
+        if(gate.split('-')[0] == 'OUTPUT'):
+            gate_obj_dict.get(gate).visited = 2
+            gate_obj_dict.get(gate).min_required_time = req_time
+            gate_obj_dict.get(gate).slack = gate_obj_dict.get(gate).min_required_time - gate_obj_dict.get(gate).max_out_arr_time
+            for fanin in gate_obj_dict.get(gate).inputs:
+                Q.append(fanin)
+        
+        elif(gate.split('-')[0] != 'OUTPUT' and gate.split('-')[1] in circuit_output_lines.keys()):
+            gate = circuit_intermediate_outputs[gate.split('-')[1]]
+            gate_obj_dict.get(gate).visited = 2
+            gate_obj_dict.get(gate).min_required_time = req_time
+            gate_obj_dict.get(gate).slack = gate_obj_dict.get(gate).min_required_time - gate_obj_dict.get(gate).max_out_arr_time
+
+            for fanin in gate_obj_dict.get(gate).inputs:
+                if (fanin not in Q and gate_obj_dict.get(fanin).visited != 2):
+                    delay = gate_obj_dict.get(gate).delay.get(fanin)
+                    gate_req_time = gate_obj_dict.get(gate).min_required_time
+                    gate_obj_dict.get(fanin).required_time[gate] = gate_req_time - delay
+                    if len(gate_obj_dict.get(fanin).required_time) == len(gate_obj_dict.get(fanin).outputs):
+                        gate_obj_dict.get(fanin).min_required_time = min(gate_obj_dict.get(fanin).required_time.values())
+                        gate_obj_dict.get(fanin).slack = gate_obj_dict.get(fanin).min_required_time - gate_obj_dict.get(fanin).max_out_arr_time
+                        Q.append(fanin)
+        
+        elif(gate.split('-')[1] in circuit_intermediate_outputs.keys()):
+            gate = circuit_intermediate_outputs[gate.split('-')[1]]
+            gate_obj_dict.get(gate).visited = 2
+            
+            if len(gate_obj_dict.get(gate).required_time) == len(gate_obj_dict.get(gate).outputs):
+                gate_obj_dict.get(gate).min_required_time = min(gate_obj_dict.get(gate).required_time.values())
+                gate_obj_dict.get(gate).slack = gate_obj_dict.get(gate).min_required_time - gate_obj_dict.get(gate).max_out_arr_time
+
+            for fanin in gate_obj_dict.get(gate).inputs:
+                
+                if (fanin not in Q and gate_obj_dict.get(fanin).visited != 2):
+                    delay = gate_obj_dict.get(gate).delay.get(fanin)
+                    gate_req_time = gate_obj_dict.get(gate).min_required_time
+
+                    if (fanin.split('-')[0] == 'INPUT'):
+                        gate_obj_dict.get(fanin).required_time[gate] = gate_req_time - delay
+                        gate_obj_dict.get(fanin).min_required_time = min(gate_obj_dict.get(fanin).required_time.values())
+                        gate_obj_dict.get(fanin).slack = gate_obj_dict.get(fanin).min_required_time - gate_obj_dict.get(fanin).max_out_arr_time
+
+                    else:
+                        delay = gate_obj_dict.get(gate).delay.get(fanin)
+                        gate_req_time = gate_obj_dict.get(gate).min_required_time
+                        gate_obj_dict.get(fanin).required_time[gate] = gate_req_time - delay
+                        if len(gate_obj_dict.get(fanin).required_time) == len(gate_obj_dict.get(fanin).outputs):
+                            gate_obj_dict.get(fanin).min_required_time = min(gate_obj_dict.get(fanin).required_time.values())
+                            gate_obj_dict.get(fanin).slack = gate_obj_dict.get(fanin).min_required_time - gate_obj_dict.get(fanin).max_out_arr_time
+                            Q.append(fanin)

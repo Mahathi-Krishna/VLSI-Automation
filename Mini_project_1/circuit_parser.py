@@ -43,6 +43,9 @@ class Node:
         self.tau_out = 0.0
         self.out_arr_time = {}
         self.max_out_arr_time = 0.0
+        self.required_time = {}
+        self.min_required_time = 0.0
+        self.slack = 0.0
     
         # phase-2
         # For storing cin
