@@ -20,6 +20,7 @@ gate_cload_list = []                # stores the cload of each gate as list
 input_filepath = './c17.bench'
 
 # phase-2
+str_data = ""
 loadcap_inv = 0.0                   # cap of inv
 gate_output_list = []               # stores the inputs of each gate as list of list
 Q = deque()                         # for Top BFS
@@ -99,7 +100,7 @@ def fn_io_parser(lines):
             str_data = (f"{len(circuit_input_lines)} primary inputs\n"
                         f"{len(circuit_output_lines)} primary outputs\n")
     
-    fn_w_circuit_file(1, circuitfile, 'a', str_data)
+    # fn_w_circuit_file(1, circuitfile, 'a', str_data)
 
 # Get gate count and create nodes:
 def fn_gate_detail_parser(lines):
@@ -145,10 +146,10 @@ def fn_gate_detail_parser(lines):
         gate.outpin = gate_id_list[i]
         gate.inputs = gate_input_list[i]
 
-    for key in gate_count_dict.keys():
-        str_data = str_data + f"{gate_count_dict[key]} {key} gates\n"
+    # for key in gate_count_dict.keys():
+        # str_data = str_data + f"{gate_count_dict[key]} {key} gates\n"
 
-    fn_w_circuit_file(0, circuitfile, 'a', str_data)
+    # fn_w_circuit_file(0, circuitfile, 'a', str_data)
 
 # Function for computing fan-in details of each gate/node:
 def fn_fanin_parser():
@@ -165,7 +166,7 @@ def fn_fanin_parser():
                     str_data = str_data + ' ' + circuit_intermediate_outputs.get(i.split('-')[1]) + ','
             str_data = str_data.strip(',') + '\n'
         
-    fn_w_circuit_file(0, circuitfile, 'a', str_data)
+    # fn_w_circuit_file(0, circuitfile, 'a', str_data)
 
 # Function for computing fan-out details for each gate/node:
 def fn_fanout_parser():
@@ -197,7 +198,7 @@ def fn_fanout_parser():
         str_data = str_data.strip(',') + '\n'
         gate_obj_dict.get(gatename).outputs = tempList # phase-2
     
-    fn_w_circuit_file(0, circuitfile, 'a', str_data)
+    # fn_w_circuit_file(0, circuitfile, 'a', str_data)
 
 # Function for reading the .bench file and populate the necessary circuit details:
 def read_ckt():

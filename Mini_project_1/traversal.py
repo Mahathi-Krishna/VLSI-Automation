@@ -105,7 +105,7 @@ def calculateslack():
             for fanin in gate_obj_dict.get(gate).inputs:
                 Q.append(fanin)
         
-        elif(gate.split('-')[0] != 'OUTPUT' and gate.split('-')[1] in circuit_output_lines.keys()):
+        elif(gate.split('-')[0] not in ['INPUT','OUTPUT'] and gate.split('-')[1] in circuit_output_lines.keys()):
             gate = circuit_intermediate_outputs[gate.split('-')[1]]
             gate_obj_dict.get(gate).visited = 2
             gate_obj_dict.get(gate).min_required_time = req_time
@@ -121,7 +121,7 @@ def calculateslack():
                         gate_obj_dict.get(fanin).slack = gate_obj_dict.get(fanin).min_required_time - gate_obj_dict.get(fanin).max_out_arr_time
                         Q.append(fanin)
         
-        elif(gate.split('-')[1] in circuit_intermediate_outputs.keys()):
+        elif(gate.split('-')[0] not in ['INPUT','OUTPUT'] and gate.split('-')[1] in circuit_intermediate_outputs.keys()):
             gate = circuit_intermediate_outputs[gate.split('-')[1]]
             gate_obj_dict.get(gate).visited = 2
             
