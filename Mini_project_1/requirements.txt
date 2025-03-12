@@ -1,4 +1,5 @@
-pandas
+pandas==2.2.3
 argparse
 regex
-numpy
+numpy==2.2.2
+collections
