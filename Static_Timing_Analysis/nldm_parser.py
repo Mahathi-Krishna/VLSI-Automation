@@ -131,6 +131,7 @@ def get_delay_slew(gate_name,Cload,Tau):
         if re.sub(r"\d", "", nod.Allgate_name.split('_')[0]) == gate_name:
             Cload_list = [float(num) for num in nod.Cload_vals.split(",") if num.strip()]
             Tauin_list = [float(num) for num in nod.Tau_in_vals.split(",") if num.strip()]
+            # print(Cload_list,Tauin_list)
             if (Tau in Tauin_list) and (Cload in Cload_list):
                 for i in range(0,len(Cload_list)):
                     if(Cload == Cload_list[i]):

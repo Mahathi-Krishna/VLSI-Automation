@@ -175,10 +175,10 @@ def fn_fanout_parser():
     intermediate_key_list = list(circuit_intermediate_outputs.keys())
     str_data = "\nFanout...\n"
 
-    for gate_id in gate_id_list:
+    for gate_id in gate_id_list: #gate_id = P1_U3085
         tempList = [] # phase-2
         cload = 0.0 # phase-2
-        gatename = circuit_intermediate_outputs[gate_id]
+        gatename = circuit_intermediate_outputs[gate_id] #gatename = NAND-P1_U3085
         str_data = str_data + gatename + ':'
         if gate_id not in circuit_output_lines.keys():
             for index, input in enumerate(gate_input_list):
@@ -190,6 +190,18 @@ def fn_fanout_parser():
                     tempList.append(gate_type) # phase-2
                     cload = cload + gate_obj_dict.get(gate_type).cin
             gate_obj_dict.get(gatename).cload = cload
+        # Fixed logic
+        elif (gate_id in circuit_intermediate_outputs.keys()) and (gate_id in circuit_output_lines.keys()):
+            for index, input in enumerate(gate_input_list):
+                input = [s.split('-')[1] for s in input]
+                if gate_id in input:
+                    id = intermediate_key_list[index]
+                    gate_type = circuit_intermediate_outputs[id]
+                    str_data = str_data + ' ' + gate_type + ','
+                    tempList.append(gate_type) # phase-2
+                    # cload = cload + gate_obj_dict.get(gate_type).cin
+            # print('206:', gatename, cload)
+            # gate_obj_dict.get(gatename).cload = cload
         
         if gate_id in circuit_output_lines.keys():
            gate_type = circuit_output_lines[gate_id]
@@ -199,7 +211,7 @@ def fn_fanout_parser():
         str_data = str_data.strip(',') + '\n'
         gate_obj_dict.get(gatename).outputs = tempList # phase-2
     
-    # fn_w_circuit_file(0, circuitfile, 'a', str_data)
+    # fn_w_circuit_file(0, circuitfile, 'w', str_data)
 
 # Function for reading the .bench file and populate the necessary circuit details:
 def read_ckt(circuit_filepath):

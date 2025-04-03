@@ -4,20 +4,20 @@ from circuit_parser import *
 from nldm_parser import *
 from traversal import *
 
-parser = argparse.ArgumentParser() 
-parser.add_argument("-r","--read_nldm",help="reads  the nldm file",action = "store_true")   #To parse and populate the datastructure for the NLDM file and find slew
-parser.add_argument("-c","--read_ckt",help="reads the bench file",action="store_true")      #To parse and populate the datastructure for the becnch file
-parser.add_argument('input_ckt_file',help='Path to the input file')                         # Circuit file
-parser.add_argument('input_nldm_file',help='Path to the input file')                        # nldm file
+# parser = argparse.ArgumentParser() 
+# parser.add_argument("-r","--read_nldm",help="reads  the nldm file",action = "store_true")   #To parse and populate the datastructure for the NLDM file and find slew
+# parser.add_argument("-c","--read_ckt",help="reads the bench file",action="store_true")      #To parse and populate the datastructure for the becnch file
+# parser.add_argument('input_ckt_file',help='Path to the input file')                         # Circuit file
+# parser.add_argument('input_nldm_file',help='Path to the input file')                        # nldm file
 
-args = parser.parse_args()
-circuit_filepath = args.input_ckt_file    # Getting the file mentioned in the command line
-nldm_filepath = args.input_nldm_file      # Getting the file mentioned in the command line
+# args = parser.parse_args()
+circuit_filepath = './c17.bench' #args.input_ckt_file    # Getting the file mentioned in the command line
+nldm_filepath = './sample_NLDM.lib' # args.input_nldm_file      # Getting the file mentioned in the command line
 
 str_data = ""
 
 # Main function calls
-if args.read_nldm and args.read_ckt:
+if 1==1: #args.read_nldm and args.read_ckt:
     
     nldm(nldm_filepath)
     delay()
@@ -44,5 +44,5 @@ if args.read_nldm and args.read_ckt:
 
     str_data = str_data + f"\nCritical Path:\n{', '.join(longest_path)}"
 
-    fn_w_circuit_file(0, circuitfile, 'w', str_data)
+    fn_w_circuit_file(0, 'test.txt', 'w', str_data)
     # phase-2 end
