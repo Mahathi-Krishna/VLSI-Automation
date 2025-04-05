@@ -20,7 +20,7 @@ Getting Started:
 >> pip3 install -r requirements.txt
 
 6. Run the parser.py file:
-syntax: python3.7 ir_solver.py -input_file <.sp file> -output_path <output file path>
+syntax: python3.7 ir_solver.py -input_file <.sp file> -output_file <output file path>
 >> python3.7 ir_solver.py -input_file testcase1.sp -output_file testcase1.txt
 
 
