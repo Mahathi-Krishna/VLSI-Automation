@@ -1,0 +1,4 @@
+regex
+argparse 
+scipy 
+numpy

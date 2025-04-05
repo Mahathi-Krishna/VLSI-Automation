@@ -3,6 +3,7 @@ from matplotlib import pyplot as plt
 
 import argparse
 import matplotlib
+from pathlib import Path
 
 def main():
     # Create a parser object
@@ -23,7 +24,7 @@ def main():
     golden_reference = extract_nodes_and_voltages(spice_file)
     output_values = read_output_file(output_file)
     analyze_and_print_results(golden_reference, output_values)
-    plot_voltage_comparison(golden_reference, output_values)
+    plot_voltage_comparison(golden_reference, output_values, spice_file, output_file)
 
 def extract_nodes_and_voltages(file_name):
     nodes_and_voltages = {}  # Dictionary to store node names and their corresponding voltages
@@ -85,9 +86,11 @@ def is_float(value):
     except ValueError:
         return False
 
-def plot_voltage_comparison(dict1, dict2):
+def plot_voltage_comparison(dict1, dict2, spice_file, output_file):
     # Extract shared keys (common nodes) to compare voltages
     common_keys = set(dict1.keys()).intersection(dict2.keys())
+    filepath = Path(spice_file)
+    spice_file = filepath.stem  # 'testcase18'
 
     # Extract voltages for the scatter plot
     voltages_1 = [dict1[key]["voltage"] for key in common_keys]
@@ -102,7 +105,7 @@ def plot_voltage_comparison(dict1, dict2):
              color='red', linestyle='--', label="y = x")
 
     # Add labels and title
-    plt.title("Voltage Comparison")
+    plt.title(f"Voltage Comparison for {spice_file.split('.')[0]}")
     plt.xlabel("Voltage from SPICE reference")
     plt.ylabel("Voltage from Output file")
     plt.legend()
