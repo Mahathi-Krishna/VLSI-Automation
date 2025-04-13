@@ -8,22 +8,23 @@ import matplotlib.pyplot as plt
 class Netlist_Parser:
     # Process the netlist data and form a sparse G-matrix:
     def __init__(self, data):
-        self.nodes = set()      # Stores unique node combinations
-        self.node_index = {}    # Stores  [node: index] for each node combination
-        self.g_data = []        # Conductance values with nodes in a matrix [(node1, node2, G),...]
-        self.v_data = []        # Voltage values with nodes in a matrix [(node1, node2, V),...]
-        self.i_data = []        # Current values with nodes in a matrix [(node1, node2, I),...]
-        self.row_mat = []       # Store the x-coordinates
-        self.col_mat = []       # Store the y-coordinates
-        self.val_mat = []       # Store the value
-        self.v_vector = []      # Voltage matrix
-        self.x_coord_max = 0    # Stores the max x_coord
-        self.y_coord_max = 0    # Stores the max y_coord
-        self.x_max = 0          # x_coord_max // 2000
-        self.y_max = 0          # y_coord_max // 2000
-        self.area = 0           # Total area of the netlist
-        self.current_coord = [] # Stores the current data [[x, y, value],...]
-        self.metal_layers = set()   # Stores the metal layers
+        self.nodes = set()              # Stores unique node combinations
+        self.node_index = {}            # Stores  [node: index] for each node combination
+        self.g_data = []                # Conductance values with nodes in a matrix [(node1, node2, G),...]
+        self.v_data = []                # Voltage values with nodes in a matrix [(node1, node2, V),...]
+        self.i_data = []                # Current values with nodes in a matrix [(node1, node2, I),...]
+        self.row_mat = []               # Store the x-coordinates
+        self.col_mat = []               # Store the y-coordinates
+        self.val_mat = []               # Store the value
+        self.v_vector = []              # Voltage matrix
+        self.x_coord_max = 0            # Stores the max x_coord
+        self.y_coord_max = 0            # Stores the max y_coord
+        self.x_max = 0                  # x_coord_max // 2000
+        self.y_max = 0                  # y_coord_max // 2000
+        self.area = 0                   # Total area of the netlist
+        self.current_coord = []         # Stores the current data [[x, y, value],...]
+        self.voltage_sources_grid = []  # Stores the location of all voltage sources
+        self.metal_layers = set()       # Stores the metal layers
 
         for line in data:
             if not line.startswith(".") and len(line.split()) == 4:
@@ -34,7 +35,7 @@ class Netlist_Parser:
                 val = components[3]
                 
                 # Process the metal layer used:
-                self.save_metal_info(node1, node2)
+                self.Save_Metal_Info(node1, node2)
 
                 # Compute max X & Y coordinates:
                 if(node1 == '0'):
@@ -65,6 +66,13 @@ class Netlist_Parser:
                 # Process Voltages:
                 elif(item.startswith("V")):
                     self.v_data.append((node1, node2, float(val)))
+                    # Store voltage source details:
+                    x_coord = x_coord2//2000 if (x_coord1//2000 == 0) else x_coord1//2000
+                    y_coord = y_coord2//2000 if (y_coord1//2000 == 0) else y_coord1//2000
+
+                    if (x_coord, y_coord) not in self.voltage_sources_grid:
+                        self.voltage_sources_grid.append((x_coord, y_coord))
+                
                 # Save node information:
                 node1 = node2 if node1 == '0' else node1
                 node2 = node1 if node2 == '0' else node2
@@ -78,7 +86,7 @@ class Netlist_Parser:
         print(dim, "Area: ", self.area)
 
         # Identify each node with an index:
-        self.nodes = sorted(self.nodes, key=self.sort_key)
+        self.nodes = sorted(self.nodes, key=self.Sort_Key)
         max_n = len(self.nodes)
         self.node_index = {node:i for i, node in enumerate(self.nodes)}
 
@@ -128,26 +136,18 @@ class Netlist_Parser:
         self.v_vector = spsolve(self.sparse_g_matrix, self.i_vector)
     
     # Sort inorder:
-    def sort_key(self, s):
+    def Sort_Key(self, s):
         parts = re.split(r'(\d+)', s)  # Split by numbers while keeping them
         return [int(p) if p.isdigit() else p for p in parts]
-
-    # Compute the Voltage vector:
-    def solve_voltage_vector(self):
-        self.v_vector = spsolve(self.sparse_g_matrix, self.i_vector)
-    
-    # Return G_matrix, Voltage & Current vectors:
-    def getGImatrix(self):
-        return self.sparse_g_matrix, self.i_vector, self.v_vector
     
     # Write the node voltages:
-    def write_voltage_vector(self, outfilename):
+    def Write_Voltage_Vector(self, outfilename):
         with open(f'{outfilename}', 'w') as file:
             for node, voltage in zip(self.nodes, self.v_vector):
                 file.write(f"{node}\t{voltage}\n")
     
     # Save the metal layer information:
-    def save_metal_info(self, node1, node2):
+    def Save_Metal_Info(self, node1, node2):
         metal1, metal2 = '', ''
         if(node1 != '0'):
             metal1 = node1.split('_')[1]
@@ -155,3 +155,28 @@ class Netlist_Parser:
         if(node2 != '0'):
             metal2 = node2.split('_')[1]
             self.metal_layers.update([metal2])
+    
+    # Process for Current Map:
+    def Process_Current_Map(self):
+        self.current_map = np.zeros((self.x_max, self.y_max))
+        for x, y, val in self.current_coord:
+            self.current_map[x, y] += val
+    
+    # Process for IR Drop and Effective Voltage distances:
+    def Process_IR_Drop(self):
+        self.ir_drop_mat = np.zeros((self.x_max, self.y_max))
+        for node, voltage in zip(self.nodes, self.v_vector):
+            if(node.split('_')[1] == 'm1'):
+                x, y = int(node.split('_')[-2]), int(node.split('_')[-1])
+                x = x // 2000
+                y = y // 2000
+                self.ir_drop_mat[x, y] = max(self.ir_drop_mat[x, y], (1.1 - voltage))
+    
+    # Process for Effective Distance to Voltage Sources:
+    def Process_Volt_Dist(self):
+        self.eff_dist_volt = np.zeros((self.x_max, self.y_max))
+        for i in range(self.x_max):     # for each row (along y-axis)
+            for j in range(self.y_max): # for each column (along x-axis)
+                distances = [(1/np.hypot(j - vx, i - vy)) for vx, vy in self.voltage_sources_grid]
+                d_eff = 1/sum(distances)
+                self.eff_dist_volt[j, i] = d_eff

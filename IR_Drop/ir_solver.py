@@ -4,7 +4,7 @@ import argparse
 
 from file_transactions import *
 from Netlist_Parser import *
-from plots import *
+from Plots import *
 
 # parser = argparse.ArgumentParser() 
 # parser.add_argument("-input_file", help = "Argument for parsing the input", action = "store_true") # Argument for parsing the input
@@ -19,8 +19,10 @@ filename = './benchmarks/testcase1.sp' #args.spice_netlist_name
 if 1==1: #args.voltage_file_name and args.spice_netlist_name:
     filedata = read_file(filename)
     parser = Netlist_Parser(filedata)
-    # parser.solve_voltage_vector()
-    # sp_g_matrix.write_voltage_vector(outfilename)
-    form_current_map(parser.current_coord, parser.x_max, parser.y_max)
+    parser.Process_Current_Map()
+    parser.Process_IR_Drop()
+    parser.Process_Volt_Dist()
+    Custom_Plot(parser.current_map, "Current Map")
+    Custom_Plot(parser.ir_drop_mat, "IR Drop")
+    Custom_Plot(parser.eff_dist_volt, "Effective Distance to Voltage Source Map")
     # print(sorted(parser.metal_layers))
-    form_ir_drop_map(parser.nodes, parser.v_vector, parser.x_max, parser.y_max)
