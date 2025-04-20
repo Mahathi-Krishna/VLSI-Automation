@@ -31,19 +31,3 @@ if 1==1: #args.voltage_file_name and args.spice_netlist_name:
     
     parser.Process_PDN_Map()
     Custom_Plot_PDN(parser.pdn_density_map, "PDN Density Map")
-    
-    # parser.Sort_By_Block()
-
-    # str_data = ''
-    # for (coo), res in parser.pdn_blocks.items():
-    #     str_data = str_data + f"Blocks: {coo}: {len(res)}\n"
-
-    # for node in parser.sorted_m4_nodes:
-    #     str_data = str_data + f"\nBin: {node[0]}\n"
-    #     for n in node[1]:
-    #         x1 = int(n.split('_')[-2]) // parser.dbu
-    #         y1 = int(n.split('_')[-1]) // parser.dbu
-    #         str_data = str_data + f"{n}: {x1, y1}\n"
-    
-    # with open(f'test', 'w') as file:
-    #         file.write(str_data)
