@@ -13,16 +13,37 @@ from Plots import *
 # parser.add_argument('voltage_file_name', help = 'Path to the output voltage file') # Path to the output voltage file
 
 # args = parser.parse_args()
-filename = './benchmarks/testcase1.sp' #args.spice_netlist_name
+filename = './data_point92.sp' #args.spice_netlist_name
 # outfilename = args.voltage_file_name
 
 if 1==1: #args.voltage_file_name and args.spice_netlist_name:
     filedata = read_file(filename)
     parser = Netlist_Parser(filedata)
+    
     parser.Process_Current_Map()
-    parser.Process_IR_Drop()
-    parser.Process_Volt_Dist()
     Custom_Plot(parser.current_map, "Current Map")
+
+    parser.Process_IR_Drop()
     Custom_Plot(parser.ir_drop_mat, "IR Drop")
+
+    parser.Process_Volt_Dist()
     Custom_Plot(parser.eff_dist_volt, "Effective Distance to Voltage Source Map")
-    # print(sorted(parser.metal_layers))
+    
+    parser.Process_PDN_Map()
+    Custom_Plot_PDN(parser.pdn_density_map, "PDN Density Map")
+    
+    # parser.Sort_By_Block()
+
+    # str_data = ''
+    # for (coo), res in parser.pdn_blocks.items():
+    #     str_data = str_data + f"Blocks: {coo}: {len(res)}\n"
+
+    # for node in parser.sorted_m4_nodes:
+    #     str_data = str_data + f"\nBin: {node[0]}\n"
+    #     for n in node[1]:
+    #         x1 = int(n.split('_')[-2]) // parser.dbu
+    #         y1 = int(n.split('_')[-1]) // parser.dbu
+    #         str_data = str_data + f"{n}: {x1, y1}\n"
+    
+    # with open(f'test', 'w') as file:
+    #         file.write(str_data)
