@@ -2,6 +2,7 @@
 
 import argparse
 import numpy as np
+import sys
 
 from file_transactions import *
 from Netlist_Parser import *
@@ -14,15 +15,18 @@ from Plots import *
 # parser.add_argument('voltage_file_name', help = 'Path to the output voltage file') # Path to the output voltage file
 
 # args = parser.parse_args()
-filename = 'testcase1.sp' #args.spice_netlist_name
-filepath = f"./Benchmarks/{filename}"
+filename = sys.argv[1] #args.spice_netlist_name
+feature_path = "Features"
+
+# filepath = f"./Benchmarks/{filename}"
 # outfilename = args.voltage_file_name
 
 if 1==1: #args.voltage_file_name and args.spice_netlist_name:
-    filedata = read_file(filepath)
+    filedata = read_file(filename)
     parser = Netlist_Parser(filedata)
     
-    filename = filename.split('.')[0]
+    filename = filename.split('.')[1].split('\\')[1]
+    print(filename)
 
     parser.Process_Current_Map()
     # Custom_Plot(map, "Current Map")
@@ -38,7 +42,7 @@ if 1==1: #args.voltage_file_name and args.spice_netlist_name:
 
     # Save the matrices for model training:
     np.savez_compressed(
-        f'{filename}.npz',
+        f'./{feature_path}/{filename}.npz',
         current_map = parser.current_map,
         effective_voltage_dist_map = parser.eff_dist_volt,
         pdn_map = parser.pdn_density_map,
