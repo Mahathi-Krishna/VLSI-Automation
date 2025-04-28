@@ -113,8 +113,9 @@ class Netlist_Parser:
                 self.nodes.update([node1, node2])
 
         # Calculate dimension and area:
-        self.x_max = (self.x_coo_max // self.dbu) + 1
-        self.y_max = (self.y_coo_max // self.dbu) + 1
+        max_coo = max( (self.x_coo_max // self.dbu) + 1, (self.y_coo_max // self.dbu) + 1)
+        self.x_max = max_coo
+        self.y_max = max_coo
         dim = f"Resolution: {self.x_max} x {self.y_max}"
         self.area = self.x_max * self.y_max
         print(dim, "Area: ", self.area)
@@ -186,8 +187,8 @@ class Netlist_Parser:
         return [int(p) if p.isdigit() else p for p in parts]
     
     # Write the node voltages:
-    def Write_Voltage_Vector(self, outfilename):
-        with open(f'{outfilename}', 'w') as file:
+    def Write_Voltage_Vector(self, filename):
+        with open(f'{filename}', 'w') as file:
             for node, voltage in zip(self.nodes, self.v_vector):
                 file.write(f"{node}\t{voltage}\n")
     
@@ -198,25 +199,30 @@ class Netlist_Parser:
             self.current_map[x, y] += val
     
     # IR Drop Map:
-    def Process_IR_Drop(self):
+    def Process_IR_Drop(self, voltage_file):
         self.ir_drop_mat = np.zeros((self.x_max, self.y_max))
-        for node, voltage in zip(self.nodes, self.v_vector):
-            if(node.split('_')[1] == 'm1'):
-                x, y = int(node.split('_')[-2]), int(node.split('_')[-1])
-                x = x // self.dbu
-                y = y // self.dbu
-                self.ir_drop_mat[x, y] = max(self.ir_drop_mat[x, y], (1.1 - voltage))
+
+        with open(voltage_file, 'r') as file:
+            for line in file:
+                parts = line.strip().split()
+                node, voltage = parts[0], float(parts[1])
+
+                if(node.split('_')[1] == 'm1'):
+                    x, y = int(node.split('_')[-2]), int(node.split('_')[-1])
+                    x = x // self.dbu
+                    y = y // self.dbu
+                    self.ir_drop_mat[x, y] = max(self.ir_drop_mat[x, y], (1.1 - voltage))
         
-        # # Smooth the ir_drop_mat:
-        # kernel_size = 5
-        # kernel = np.ones((kernel_size, kernel_size), dtype=np.float64)
-        # mask = self.ir_drop_mat != 0
-        # # Convolve both the data and the mask
-        # smoothed_data = convolve(self.ir_drop_mat, kernel, mode='constant', cval=0.0)
-        # normalization = convolve(mask.astype(np.float64), kernel, mode='constant', cval=0.0)
-        # # To avoid divide-by-zero and normalize only valid regions
-        # with np.errstate(divide='ignore', invalid='ignore'):
-        #     self.ir_drop_mat = np.where(normalization > 0, smoothed_data / normalization, 0)
+        # Smooth the ir_drop_mat:
+        kernel_size = 5
+        kernel = np.ones((kernel_size, kernel_size), dtype=np.float64)
+        mask = self.ir_drop_mat != 0
+        # Convolve both the data and the mask
+        smoothed_data = convolve(self.ir_drop_mat, kernel, mode='constant', cval=0.0)
+        normalization = convolve(mask.astype(np.float64), kernel, mode='constant', cval=0.0)
+        # To avoid divide-by-zero and normalize only valid regions
+        with np.errstate(divide='ignore', invalid='ignore'):
+            self.ir_drop_mat = np.where(normalization > 0, smoothed_data / normalization, 0)
     
     # Effective Distance to Voltage Sources Map:
     def Process_Volt_Dist(self):

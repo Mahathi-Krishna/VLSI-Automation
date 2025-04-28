@@ -4,10 +4,16 @@ import torch
 import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
 import torch.optim as optim
+import argparse
 from tqdm import tqdm
 from scipy.ndimage import zoom
 import matplotlib.pyplot as plt
+from collections import defaultdict
+from data_generation import Data_Generator
+from Plotter import *
 
+
+# Pre-Convolution Layer:
 class PreConv(nn.Module):
     def __init__(self, in_channels, out_channels):
         super(PreConv, self).__init__()
@@ -19,13 +25,14 @@ class PreConv(nn.Module):
     def forward(self, x):
         return self.conv(x)
 
-# Dataset class
-class IRDropDataset(Dataset):
+# Dataset class working on npy files:
+class IRDropDataset_npy(Dataset):
     def __init__(self, feature_dir, label_dir, target_size=(256, 256)):
         self.feature_dir = feature_dir
         self.label_dir = label_dir
         self.target_size = target_size
-        self.filenames = sorted([f for f in os.listdir(feature_dir) if f.endswith('.npy')])
+        self.feature_filenames = sorted([f for f in os.listdir(feature_dir) if f.endswith('.npy')])
+        self.label_filenames = sorted([f for f in os.listdir(label_dir) if f.endswith('.npy')])
 
     def resize(self, array, target_size):
         zoom_factors = [t / s for t, s in zip(target_size, array.shape)]
@@ -35,26 +42,84 @@ class IRDropDataset(Dataset):
         return (arr - np.mean(arr)) / (np.std(arr) + 1e-8)
 
     def __len__(self):
-        return len(self.filenames)
+        return len(self.feature_filenames)
 
     def __getitem__(self, idx):
-        f = self.filenames[idx]
+        f = self.feature_filenames[idx]
+        l = self.label_filenames[idx]
         features = np.load(os.path.join(self.feature_dir, f))
-        label = np.load(os.path.join(self.label_dir, f))
-
-        # v = self.normalize(self.resize(features['current_map'], self.target_size))
-        # c = self.normalize(self.resize(features['effective_voltage_dist_map'], self.target_size))
-        # p = self.normalize(self.resize(features['pdn_map'], self.target_size))
-        # y = self.resize(label['ir_drop_map'], self.target_size)
+        label = np.load(os.path.join(self.label_dir, l))
 
         v = self.normalize(features[1])
         c = self.normalize(features[0])
         p = self.normalize(features[2])
         y = self.normalize(label)
 
-        x = np.stack([v, c, p], axis=0)
+        x = np.stack([c, v, p], axis=0)
         x = torch.tensor(x, dtype=torch.float32)
         y = torch.tensor(y, dtype=torch.float32).unsqueeze(0)
+
+        return x, y
+
+# Dataset class working on csv files:
+class IRDropDataset_csv(Dataset):
+    def __init__(self, feature_dir, label_dir, target_size=(256, 256)):
+        self.feature_dir = feature_dir
+        self.label_dir = label_dir
+        self.target_size = target_size
+
+        # Build a list of testcases based on available files
+        self.testcases = self.build_testcase_list()
+
+    def build_testcase_list(self):
+        testcase_set = set()
+        for fname in os.listdir(self.feature_dir):
+            if fname.startswith('current_map') and fname.endswith('.csv'):
+                testcase = fname.replace('current_map_', '').replace('.csv', '')
+                testcase_set.add(testcase)
+        return sorted(list(testcase_set))
+
+    def resize(self, array, target_size):
+        zoom_factors = [t / s for t, s in zip(target_size, array.shape)]
+        return zoom(array, zoom_factors, order=1)
+
+    def normalize(self, arr):
+        return (arr - np.mean(arr)) / (np.std(arr) + 1e-8)
+
+    def __len__(self):
+        return len(self.testcases)
+
+    def __getitem__(self, idx):
+        testcase = self.testcases[idx]
+
+        # Load each feature
+        current_map = np.loadtxt(os.path.join(self.feature_dir, f'current_map_{testcase}.csv'), delimiter=',')
+        voltage_map = np.loadtxt(os.path.join(self.feature_dir, f'voltage_source_map_{testcase}.csv'), delimiter=',')
+        pdn_map = np.loadtxt(os.path.join(self.feature_dir, f'pdn_density_map_{testcase}.csv'), delimiter=',')
+
+        # Load label
+        label_path = os.path.join(self.label_dir, f'ir_drop_map_{testcase}.csv')
+        label_map = np.loadtxt(label_path, delimiter=',')
+
+        # Resize if needed
+        current_map = self.resize(current_map, self.target_size)
+        voltage_map = self.resize(voltage_map, self.target_size)
+        pdn_map = self.resize(pdn_map, self.target_size)
+        label_map = self.resize(label_map, self.target_size)
+
+        # Normalize
+        current_map = self.normalize(current_map)
+        voltage_map = self.normalize(voltage_map)
+        pdn_map = self.normalize(pdn_map)
+        label_map = self.normalize(label_map)
+
+        # Stack features
+        x = np.stack([current_map, voltage_map, pdn_map], axis=0)  # Shape: (3, H, W)
+        y = label_map[np.newaxis, :, :]                            # Shape: (1, H, W)
+
+        # Convert to torch tensors
+        x = torch.tensor(x, dtype=torch.float32)
+        y = torch.tensor(y, dtype=torch.float32)
 
         return x, y
 
@@ -105,19 +170,17 @@ def visualize_prediction(x, y, pred, epoch, save_dir):
     y = y.cpu().numpy()
     pred = pred.cpu().detach().numpy()
 
-    fig, axes = plt.subplots(1, 3, figsize=(12, 4))
-    axes[0].imshow(x[1, 1], cmap='viridis')
-    axes[0].set_title("Current Map")
-    axes[1].imshow(y[0, 0], cmap='hot')
-    axes[1].set_title("GT IR Drop")
-    axes[2].imshow(pred[0, 0], cmap='hot')
-    axes[2].set_title("Predicted IR Drop")
+    fig, axes = plt.subplots(1, 2, figsize=(12, 4))
+    axes[0].imshow(y[0, 0], cmap='hot')
+    axes[0].set_title("GT IR Drop")
+    axes[1].imshow(pred[0, 0], cmap='hot')
+    axes[1].set_title("Predicted IR Drop")
     plt.tight_layout()
     plt.savefig(os.path.join(save_dir, f'epoch_{epoch}.png'))
     plt.close()
 
 # Training loop with early stopping
-def train_model(model, dataloader, device, epochs=300, lr=1e-4, save_path='./models', patience=15):
+def train_model(model, dataloader, device, epochs, lr, save_path, patience=15):
     model.to(device)
     optimizer = optim.Adam(model.parameters(), lr=lr)
     mse = nn.MSELoss()
@@ -143,8 +206,8 @@ def train_model(model, dataloader, device, epochs=300, lr=1e-4, save_path='./mod
             optimizer.step()
             total_loss += loss.item()
 
-            if epoch % 5 == 0 and i == 0:
-                visualize_prediction(x, y, pred, epoch, './vis_debugzz')
+            if epoch % 2 == 0 and i == 0:
+                visualize_prediction(x, y, pred, epoch, './Training_Prediction_testing_npy')
 
         avg_loss = total_loss / len(dataloader)
         loss_list.append(avg_loss)
@@ -153,7 +216,7 @@ def train_model(model, dataloader, device, epochs=300, lr=1e-4, save_path='./mod
         if avg_loss < best_loss:
             best_loss = avg_loss
             patience_counter = 0
-            torch.save(model.state_dict(), os.path.join(save_path, f'unet_without_filter.pth'))
+            torch.save(model.state_dict(), os.path.join(save_path, f'unet_test_norm_10_npy.pth'))
             print("Model improved and saved.")
         else:
             patience_counter += 1
@@ -169,24 +232,52 @@ def train_model(model, dataloader, device, epochs=300, lr=1e-4, save_path='./mod
     plt.xlabel("Epoch")
     plt.ylabel("Loss")
     plt.grid()
-    plt.savefig(os.path.join("./Loss_Curve", 'training_loss_curve.png'))
+    plt.savefig(os.path.join("./Training_Loss_Curve", 'training_loss_curve_test_npy.png'))
     plt.show()
 
 # Main entry point
-def main():
-    feature_dir = './Without_Filter/Features'
-    label_dir = './Without_Filter/Labels'
+def Train(model_path):
+    feature_dir_npy = './Features'
+    label_dir_npy = './Labels'
+    feature_dir_csv = './Train_Data'
+    label_dir_csv = './Train_Data'
     target_size = (256, 256)
     batch_size = 20
-    epochs = 300
+    epochs = 10
     lr = 1e-4
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    dataset = IRDropDataset_npy(feature_dir_npy, label_dir_npy, target_size=target_size)
+    # dataset = IRDropDataset_csv(feature_dir, label_dir, target_size=target_size)
 
-    dataset = IRDropDataset(feature_dir, label_dir, target_size=target_size)
     dataloader = DataLoader(dataset, batch_size=batch_size)
-
     model = UNet(in_channels=3, out_channels=1)
-    train_model(model, dataloader, device, epochs=epochs, lr=lr, save_path='./models', patience=15)
+    train_model(model, dataloader, device, epochs=epochs, lr=lr, save_path = model_path, patience=15)
+
+# Generate Datapoint csvs:
+def Generate(input_path, out_csv_path, mode):
+    feature_path = "./Features"
+    label_path = "./Labels"
+    for filename in os.listdir(input_path):
+        file_path = os.path.join(input_path, filename)
+        if os.path.isfile(file_path):
+            Data_Generator(file_path, out_csv_path, feature_path, label_path, mode)
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser() 
+    parser.add_argument("-input", help = "Input: Path to CSV & Voltage files", type = str, required = True)
+    parser.add_argument("-output", help = "Output: Path where the UNet model is stored", type = str, required = True)
+
+    args = parser.parse_args()
+
+    if args.input and args.output:
+        input_dir = args.input
+        ouput_dir = args.output
+        os.makedirs(ouput_dir, exist_ok=True)
+        
+        print("######## Generating Training Data ########")
+        out_csv_path = "./Train_Data"
+        mode = 'train'
+        # Generate(input_dir, out_csv_path, mode)
+
+        print("######## Training Model ########")
+        Train(ouput_dir)
