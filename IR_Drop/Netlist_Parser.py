@@ -207,16 +207,16 @@ class Netlist_Parser:
                 y = y // self.dbu
                 self.ir_drop_mat[x, y] = max(self.ir_drop_mat[x, y], (1.1 - voltage))
         
-        # Smooth the ir_drop_mat:
-        kernel_size = 5
-        kernel = np.ones((kernel_size, kernel_size), dtype=np.float64)
-        mask = self.ir_drop_mat != 0
-        # Convolve both the data and the mask
-        smoothed_data = convolve(self.ir_drop_mat, kernel, mode='constant', cval=0.0)
-        normalization = convolve(mask.astype(np.float64), kernel, mode='constant', cval=0.0)
-        # To avoid divide-by-zero and normalize only valid regions
-        with np.errstate(divide='ignore', invalid='ignore'):
-            self.ir_drop_mat = np.where(normalization > 0, smoothed_data / normalization, 0)
+        # # Smooth the ir_drop_mat:
+        # kernel_size = 5
+        # kernel = np.ones((kernel_size, kernel_size), dtype=np.float64)
+        # mask = self.ir_drop_mat != 0
+        # # Convolve both the data and the mask
+        # smoothed_data = convolve(self.ir_drop_mat, kernel, mode='constant', cval=0.0)
+        # normalization = convolve(mask.astype(np.float64), kernel, mode='constant', cval=0.0)
+        # # To avoid divide-by-zero and normalize only valid regions
+        # with np.errstate(divide='ignore', invalid='ignore'):
+        #     self.ir_drop_mat = np.where(normalization > 0, smoothed_data / normalization, 0)
     
     # Effective Distance to Voltage Sources Map:
     def Process_Volt_Dist(self):
