@@ -256,8 +256,8 @@ def Train(model_path):
 
 # Generate Datapoint csvs:
 def Generate(input_path, out_csv_path, mode):
-    feature_path = "./Features_sample"
-    label_path = "./Labels_sample"
+    feature_path = "./Features"
+    label_path = "./Labels"
     for filename in os.listdir(input_path):
         file_path = os.path.join(input_path, filename)
         if os.path.isfile(file_path) and filename.endswith(".sp"):
@@ -276,7 +276,7 @@ if __name__ == "__main__":
         os.makedirs(ouput_dir, exist_ok=True)
         
         print("######## Generating Training Data ########")
-        out_csv_path = "./Train_Data_sample"
+        out_csv_path = "./Train_Data"
         mode = 'train'
         Generate(input_dir, out_csv_path, mode)
 

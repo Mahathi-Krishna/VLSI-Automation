@@ -20,7 +20,7 @@ Getting Started:
 
 6. To generate the four CSV files (Current Map, Voltage Source Map, PDN Density Map, IR Drop Map) for a netlist:
 Syntax: py data_generation.py -spice_netlist <path to spice file> -voltage_file <path to voltage file> –output <path to directory where four csvs are saved.>
->> py data_generation.py -spice_netlist ./Datapoints/testcase1.sp -voltage_file ./Datapoints/testcase1.txt –output ./CSV_Files
+>> py data_generation.py -spice_netlist ./Datapoints/testcase1.sp -voltage_file ./Datapoints/testcase1.voltage –output ./CSV_Files
 
 7. To train the machine learning model:
 Syntax: py training.py -input <path to directory .sp and .voltage files> -output <path to ML model will be saved its name>
