@@ -2,11 +2,12 @@
 import re
 import math
 import numpy as np
+import matplotlib.pyplot as plt
+
+from scipy.ndimage import convolve
+from collections import defaultdict
 from scipy.sparse import coo_matrix
 from scipy.sparse.linalg import spsolve
-from scipy.ndimage import convolve
-import matplotlib.pyplot as plt
-from collections import defaultdict
 
 class Netlist_Parser:
     # Process the netlist data and form a sparse G-matrix:
@@ -188,7 +189,7 @@ class Netlist_Parser:
     
     # Write the node voltages:
     def Write_Voltage_Vector(self, filename):
-        with open(f'{filename}', 'w') as file:
+        with open(f'{filename}.voltage', 'w') as file:
             for node, voltage in zip(self.nodes, self.v_vector):
                 file.write(f"{node}\t{voltage}\n")
     

@@ -1,16 +1,17 @@
 import os
-import numpy as np
 import torch
-import torch.nn as nn
-from torch.utils.data import Dataset, DataLoader
-import torch.optim as optim
 import argparse
+import numpy as np
+import torch.nn as nn
+import torch.optim as optim
+import matplotlib.pyplot as plt
+
+from plotter import *
 from tqdm import tqdm
 from scipy.ndimage import zoom
-import matplotlib.pyplot as plt
 from collections import defaultdict
 from data_generation import Data_Generator
-from Plotter import *
+from torch.utils.data import Dataset, DataLoader
 
 
 # Pre-Convolution Layer:
@@ -207,7 +208,7 @@ def train_model(model, dataloader, device, epochs, lr, save_path, patience=15):
             total_loss += loss.item()
 
             if epoch % 2 == 0 and i == 0:
-                visualize_prediction(x, y, pred, epoch, './Training_Prediction_testing_npy')
+                visualize_prediction(x, y, pred, epoch, './xxxTraining_Prediction')
 
         avg_loss = total_loss / len(dataloader)
         loss_list.append(avg_loss)
@@ -216,7 +217,7 @@ def train_model(model, dataloader, device, epochs, lr, save_path, patience=15):
         if avg_loss < best_loss:
             best_loss = avg_loss
             patience_counter = 0
-            torch.save(model.state_dict(), os.path.join(save_path, f'unet_test_norm_10_npy.pth'))
+            torch.save(model.state_dict(), os.path.join(save_path, f'xxxunet.pth'))
             print("Model improved and saved.")
         else:
             patience_counter += 1
@@ -232,7 +233,7 @@ def train_model(model, dataloader, device, epochs, lr, save_path, patience=15):
     plt.xlabel("Epoch")
     plt.ylabel("Loss")
     plt.grid()
-    plt.savefig(os.path.join("./Training_Loss_Curve", 'training_loss_curve_test_npy.png'))
+    plt.savefig(os.path.join("./Training_Loss_Curve", 'xxxtraining_loss_curve.png'))
     plt.show()
 
 # Main entry point
@@ -243,7 +244,7 @@ def Train(model_path):
     label_dir_csv = './Train_Data'
     target_size = (256, 256)
     batch_size = 20
-    epochs = 10
+    epochs = 2
     lr = 1e-4
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     dataset = IRDropDataset_npy(feature_dir_npy, label_dir_npy, target_size=target_size)
@@ -259,8 +260,8 @@ def Generate(input_path, out_csv_path, mode):
     label_path = "./Labels"
     for filename in os.listdir(input_path):
         file_path = os.path.join(input_path, filename)
-        if os.path.isfile(file_path):
-            Data_Generator(file_path, out_csv_path, feature_path, label_path, mode)
+        if os.path.isfile(file_path) and filename.endswith(".sp"):
+            Data_Generator(file_path, out_csv_path, feature_path, label_path, mode, gen_voltage_file=False)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser() 
@@ -275,9 +276,9 @@ if __name__ == "__main__":
         os.makedirs(ouput_dir, exist_ok=True)
         
         print("######## Generating Training Data ########")
-        out_csv_path = "./Train_Data"
+        out_csv_path = "./xxxTrain_Dataxxx"
         mode = 'train'
-        # Generate(input_dir, out_csv_path, mode)
+        Generate(input_dir, out_csv_path, mode)
 
         print("######## Training Model ########")
         Train(ouput_dir)

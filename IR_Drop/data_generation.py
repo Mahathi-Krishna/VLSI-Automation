@@ -1,39 +1,36 @@
 # Main IR Solver:
 
 import argparse
-import sys
 import os
 
 from file_transactions import *
-from Netlist_Parser import *
-from Plotter import *
-from Data_Augment import *
+from netlist_parser import *
+from plotter import *
+from data_augment import *
 
 
-def Data_Generator(input_path, output_path, feature_path, label_path, mode):
-        filename = input_path
-        output_path = output_path
-        os.makedirs(output_path, exist_ok=True)
+def Data_Generator(input_path, output_path, feature_path, label_path, mode, gen_voltage_file=False):
+    filename = input_path
+    output_path = output_path
+    os.makedirs(output_path, exist_ok=True)
 
-        filedata = read_file(filename)
-        parser = Netlist_Parser(filedata)
+    filedata = read_file(filename)
+    parser = Netlist_Parser(filedata)
 
-        filename = os.path.basename(filename)
-        filename = os.path.splitext(filename)[0].strip()
-        print(filename)
+    filename = os.path.basename(filename)
+    filename = os.path.splitext(filename)[0].strip()
+    input_dir = os.path.dirname(input_path)
 
-        # Save Voltage file:
-        voltage_path = f"./Voltage_sample"
-        os.makedirs(voltage_path, exist_ok=True)
-        parser.Write_Voltage_Vector(os.path.join(voltage_path, filename))
+    # Save Voltage file:
+    if gen_voltage_file:
+        parser.Write_Voltage_Vector(os.path.join(input_dir, filename))
 
-        parser.Process_Current_Map()
-        parser.Process_IR_Drop(os.path.join(voltage_path, filename))
-        parser.Process_Volt_Dist()
-        parser.Process_PDN_Map()
-
-        Data_Augment(filename, output_path, feature_path, label_path,
-                     parser.current_map, parser.eff_dist_volt, parser.pdn_density_map, parser.ir_drop_mat, train_or_test=mode)
+    parser.Process_Current_Map()
+    parser.Process_IR_Drop(os.path.join(input_dir, f"{filename}.voltage"))
+    parser.Process_Volt_Dist()
+    parser.Process_PDN_Map()
+    Data_Augment(filename, output_path, feature_path, label_path,
+                    parser.current_map, parser.eff_dist_volt, parser.pdn_density_map, parser.ir_drop_mat, train_or_test=mode)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser() 

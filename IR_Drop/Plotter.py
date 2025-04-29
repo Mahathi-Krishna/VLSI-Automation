@@ -1,5 +1,4 @@
 # For plotting and saving the plots:
-import numpy as np
 import matplotlib.pyplot as plt
 
 fig_size = (6,6)

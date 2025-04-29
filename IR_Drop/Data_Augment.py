@@ -1,9 +1,10 @@
 # File for Augmenting Data
 
 import os
-import numpy as np
 import cv2
-from Plotter import *
+import numpy as np
+
+from plotter import *
 
 def Data_Augment (filename, output_path, feature_path, label_path, current_map, voltage_map, pdn_map, ir_drop_map, train_or_test='test'):
 

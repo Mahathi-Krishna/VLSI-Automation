@@ -1,8 +1,7 @@
 VLSI Automation - Mini Project 2 - IR Drop Solver:
-The objective of this project is to compute the IR Drop of a power grid.
+The objective of this project is to predict the IR Drop of a design using machine learning approach.
+Trained a UNet model on 100 datapoints and used the model to predict the IR Drop of a new testbench.
 
-Note: Please make sure that the files are present in the same directory as the ir_solver.py file.
-If files are in a different directory, then pass the file_path as argument in the command line.
 
 Getting Started:
 1. Install python version 3.7 or later.
@@ -19,9 +18,23 @@ Getting Started:
 5. Install the required packages specified in the "requirements.txt" file:
 >> pip3 install -r requirements.txt
 
-6. Run the parser.py file:
-syntax: python3.7 ir_solver.py -input_file <.sp file> -output_file <output file path>
->> python3.7 ir_solver.py -input_file testcase1.sp -output_file testcase1.txt
+6. To generate the four CSV files (Current Map, Voltage Source Map, PDN Density Map, IR Drop Map) for a netlist:
+Syntax: py data_generation.py -spice_netlist <path to spice file> -voltage_file <path to voltage file> –output <path to directory where four csvs are saved.>
+>> py data_generation.py -spice_netlist ./Datapoints/testcase1.sp -voltage_file ./Datapoints/testcase1.txt –output ./CSV_Files
+
+7. To train the machine learning model:
+Syntax: py training.py -input <path to directory .sp and .voltage files> -output <path to ML model will be saved its name>
+>> py training.py -input ./Datapoints -output ./models
+
+8. To predict the IR Drop of a netlist using the saved ML model:
+Syntax: py inference.py -spice_file <path to spice file> -ml_model <path to ML model> -output <path to generated ir_drop_map>
+>> py inference.py -spice_file ./Benchmarks/testcase1.sp -ml_model ./models/unet.pth -output ./Prediction
+
+
+Note:
+In (7): It is assumed that voltage files are stored with a .voltage extension and in the same folder as the .sp files.
+In (7): The script generates the csv files for all the datapoints in -input path and then starts training the model.
+In (8): -output only takes the path, no need to give the file name.
 
 
 An original work of:

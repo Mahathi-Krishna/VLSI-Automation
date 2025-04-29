@@ -1,4 +1,15 @@
-regex
-argparse 
-scipy 
+# Standard libraries:
+# os
+# re
+# math
+# argparse
+# collections
+
+# Installable packages:
+tqdm
 numpy
+torch
+scipy
+pandas
+matplotlib
+opencv-python

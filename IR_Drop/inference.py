@@ -1,12 +1,13 @@
 import os
 import torch
+import argparse
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-import argparse
+
 from training import UNet
-from data_generation import Data_Generator
 from scipy.ndimage import zoom
+from data_generation import Data_Generator
 
 # -----------------------------
 # Helper Functions
@@ -229,7 +230,7 @@ if __name__ == "__main__":
     os.makedirs(test_feature_path, exist_ok=True)
     os.makedirs(test_label_path, exist_ok=True)
 
-    Data_Generator(spice_file, test_csv_path, test_feature_path, test_label_path, mode)
+    Data_Generator(spice_file, test_csv_path, test_feature_path, test_label_path, mode, gen_voltage_file=True)
 
     # Step 2: Run Inference
     
