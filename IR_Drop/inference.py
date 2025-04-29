@@ -1,4 +1,6 @@
+# Logic for Unet model inference:
 import os
+import time
 import torch
 import argparse
 import numpy as np
@@ -9,17 +11,17 @@ from training import UNet
 from scipy.ndimage import zoom
 from data_generation import Data_Generator
 
-# -----------------------------
-# Helper Functions
-# -----------------------------
-def resize(array, target_size=(256, 256)):
+# Resize the matrix:
+def Resize(array, target_size=(256, 256)):
     zoom_factors = [t / s for t, s in zip(target_size, array.shape)]
     return zoom(array, zoom_factors, order=1)
 
-def normalize(arr):
+# Normalize the matrix:
+def Normalize(arr):
     return (arr - np.mean(arr)) / (np.std(arr) + 1e-8)
 
-def plot_comparison(y_true, y_pred, filename, save_dir):
+# Compare and plot the actual vs predicted IR Drop Map:
+def Plot_Comparison(y_true, y_pred, filename, save_dir):
     y_true = y_true.squeeze().cpu().numpy()
     y_pred = y_pred.squeeze().cpu().numpy()
     abs_error = np.abs(y_true - y_pred)
@@ -39,7 +41,8 @@ def plot_comparison(y_true, y_pred, filename, save_dir):
     plt.savefig(os.path.join(save_dir, f'{filename}.png'))
     plt.close()
 
-def compute_metrics(preds, targets):
+# Compute the model metrics - MSE, L1 Loss, MAE, F1 score, Precision, Recall:
+def Compute_Metrics(preds, targets):
     mse_loss = torch.nn.MSELoss()
     l1_loss = torch.nn.L1Loss()
 
@@ -63,17 +66,16 @@ def compute_metrics(preds, targets):
 
     return mse_val, l1_val, mae_val, f1.item(), precision.item(), recall.item()
 
-def save_prediction_as_csv(pred, output_dir, filename_base):
+# Save the predicted IR Drop as csv:
+def Save_Prediction_As_Csv(pred, output_dir, filename_base):
     pred_np = pred.squeeze().cpu().numpy()
     os.makedirs(output_dir, exist_ok=True)
     csv_path = os.path.join(output_dir, f"{filename_base}_predicted.csv")
     np.savetxt(csv_path, pred_np, delimiter=',')
     print(f"Saved prediction to {csv_path}")
 
-# -----------------------------
-# Main Inference Function
-# -----------------------------
-def model_inference_npy(model_path, feature_dir, label_dir, filename, pred_save_dir, metrics_save_dir, target_size=(256,256)):
+# Unet model inference using npy files:
+def Model_Inference_Npy(model_path, feature_dir, label_dir, filename, pred_save_dir, metrics_save_dir, target_size=(256,256)):
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -81,11 +83,11 @@ def model_inference_npy(model_path, feature_dir, label_dir, filename, pred_save_
     features = np.load(os.path.join(feature_dir, f"feature_{filename}.npy"))
     label = np.load(os.path.join(label_dir, f"label_{filename}.npy"))
 
-    # Resize to target size
-    current_map = normalize(features[0])
-    voltage_map = normalize(features[1])
-    pdn_map = normalize(features[2])
-    label_map = normalize(label)
+    # Normalize to target size
+    current_map = Normalize(features[0])
+    voltage_map = Normalize(features[1])
+    pdn_map = Normalize(features[2])
+    label_map = Normalize(label)
 
     # Stack features
     x = np.stack([current_map, voltage_map, pdn_map], axis=0)
@@ -104,13 +106,13 @@ def model_inference_npy(model_path, feature_dir, label_dir, filename, pred_save_
         pred = model(x)
 
         # Metrics
-        mse_val, l1_val, mae_val, f1_val, prec_val, rec_val = compute_metrics(pred, y)
+        mse_val, l1_val, mae_val, f1_val, prec_val, rec_val = Compute_Metrics(pred, y)
 
         # Plot comparison
-        plot_comparison(y, pred, filename, pred_save_dir)
+        Plot_Comparison(y, pred, filename, pred_save_dir)
 
         # Save prediction
-        save_prediction_as_csv(pred, pred_save_dir, filename)
+        Save_Prediction_As_Csv(pred, pred_save_dir, filename)
 
         # Save metrics
         metrics = {
@@ -128,8 +130,8 @@ def model_inference_npy(model_path, feature_dir, label_dir, filename, pred_save_
 
         print(f"Metrics saved to {metrics_save_dir}")
 
-
-def model_inference_csv(model_path, feature_dir, label_dir, filename, pred_save_dir, metrics_save_dir, target_size=(256,256)):
+# Unet model inference using csv files:
+def Model_Inference_Csv(model_path, feature_dir, label_dir, filename, pred_save_dir, metrics_save_dir, target_size=(256,256)):
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -146,16 +148,16 @@ def model_inference_csv(model_path, feature_dir, label_dir, filename, pred_save_
     label_map = np.loadtxt(ir_drop_path, delimiter=',')
 
     # Resize to target size
-    current_map = resize(current_map, target_size)
-    voltage_map = resize(voltage_map, target_size)
-    pdn_map = resize(pdn_map, target_size)
-    label_map = resize(label_map, target_size)
+    current_map = Resize(current_map, target_size)
+    voltage_map = Resize(voltage_map, target_size)
+    pdn_map = Resize(pdn_map, target_size)
+    label_map = Resize(label_map, target_size)
 
     # Normalize
-    current_map = normalize(current_map)
-    voltage_map = normalize(voltage_map)
-    pdn_map = normalize(pdn_map)
-    label_map = normalize(label_map)
+    current_map = Normalize(current_map)
+    voltage_map = Normalize(voltage_map)
+    pdn_map = Normalize(pdn_map)
+    label_map = Normalize(label_map)
 
     # Stack features
     x = np.stack([current_map, voltage_map, pdn_map], axis=0)
@@ -175,13 +177,13 @@ def model_inference_csv(model_path, feature_dir, label_dir, filename, pred_save_
         pred = model(x)
 
         # Metrics
-        mse_val, l1_val, mae_val, f1_val, prec_val, rec_val = compute_metrics(pred, y)
+        mse_val, l1_val, mae_val, f1_val, prec_val, rec_val = Compute_Metrics(pred, y)
 
         # Plot comparison
-        plot_comparison(y, pred, filename, pred_save_dir)
+        Plot_Comparison(y, pred, filename, pred_save_dir)
 
         # Save prediction
-        save_prediction_as_csv(pred, pred_save_dir, filename)
+        Save_Prediction_As_Csv(pred, pred_save_dir, filename)
 
         # Save metrics
         metrics = {
@@ -199,9 +201,6 @@ def model_inference_csv(model_path, feature_dir, label_dir, filename, pred_save_
 
         print(f"Metrics saved to {metrics_save_dir}")
 
-# -----------------------------
-# CLI Entry Point
-# -----------------------------
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-spice_file", help="Input: Path to Spice Netlist", type=str, required=True)
@@ -210,6 +209,8 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
+    start_time = time.time()
+    
     spice_file = args.spice_file
     model_path = args.ml_model
     output_path = args.output
@@ -234,7 +235,7 @@ if __name__ == "__main__":
 
     # Step 2: Run Inference
     
-    # Inference using csv files:
+    # # Inference using csv files:
     # model_inference_csv(
     #     model_path = model_path,
     #     feature_dir = test_csv_path,
@@ -245,8 +246,8 @@ if __name__ == "__main__":
     #     target_size = (256, 256)
     # )
 
-    # Inference using npy files:
-    model_inference_npy(
+    # # Inference using npy files:
+    Model_Inference_Npy(
         model_path = model_path,
         feature_dir = test_feature_path,
         label_dir = test_label_path,
@@ -255,3 +256,6 @@ if __name__ == "__main__":
         metrics_save_dir = output_path,
         target_size = (256, 256)
     )
+
+    end_time = time.time()
+    print(f"Total runtime: {end_time - start_time:.2f} seconds")
