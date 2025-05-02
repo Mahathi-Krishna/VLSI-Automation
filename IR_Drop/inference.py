@@ -43,6 +43,10 @@ def Plot_Comparison(y_true, y_pred, filename, save_dir):
 
 # Compute the model metrics - MSE, L1 Loss, MAE, F1 score, Precision, Recall:
 def Compute_Metrics(preds, targets):
+    # Normalize both prediction and target:
+    preds = (preds - preds.mean()) / (preds.std() + 1e-8)
+    targets = (targets - targets.mean()) / (targets.std() + 1e-8)
+
     mse_loss = torch.nn.MSELoss()
     l1_loss = torch.nn.L1Loss()
 
@@ -51,7 +55,8 @@ def Compute_Metrics(preds, targets):
     mae_val = torch.abs(preds - targets).mean().item()
 
     max_val = targets.max()
-    threshold = 0.9 * max_val
+    # threshold = 0.9 * max_val
+    threshold = torch.quantile(targets, 0.90)
 
     preds_bin = (preds > threshold).float()
     targets_bin = (targets > threshold).float()
